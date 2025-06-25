@@ -33,7 +33,8 @@
             display: flex;
             flex-direction: column; /* Default: stack board and controls vertically */
             gap: 20px;
-            width: 100%; /* Take full width within gameContainer */
+            width: 100%;
+            max-width: 100%; /* Take full width within gameContainer */
             align-items: center; /* Center items within this wrapper */
         }
         #boardContainer {
@@ -138,7 +139,7 @@
             background-color: #fcfcfc;
             text-align: center;
             overflow-x: auto; /* Allow horizontal scrolling if chart is wider than screen */
-            width: 100%; /* Ensure they take full width in the column layout */
+            width: 100%;
             box-sizing: border-box;
         }
         #visualFenceChart, #alternateFenceChart {
@@ -444,28 +445,64 @@
             [2, 5]  // Row 6: Even (col 2), Odd (col 5)
         ];
 
+        // Helper function for 180-degree rotation around origin
+        function rotate180(shape) {
+            return shape.map(segment => {
+                const [[r1, c1], [r2, c2]] = segment;
+                return [[-r1, -c1], [-r2, -c2]];
+            });
+        }
+
         // FENCE_CHART defines fence shapes as a list of segments.
         // FENCE_CHART[rowType][colNum][variantLetter] -> shape
         const FENCE_CHART = {
             'Odd': {
-                1: { 'A': [[[0,0], [0,1]]], 'B': [[[0,0], [1,0]]] },
-                2: { 'A': [[[0,0], [0,1]], [[0,1], [1,1]]], 'B': [[[0,0], [1,0]], [[1,0], [1,1]]] },
-                3: { 'A': [[[0,0], [1,0]], [[1,0], [2,0]]], 'B': [[[0,0], [0,1]], [[0,1], [0,2]]] },
-                4: { 'A': [[[0,0], [0,-1]], [[0,-1], [-1,-1]], [[0,-1], [1,-1]]], 'B': [[[0,0], [0,1]], [[0,1], [-1,1]], [[0,1], [1,1]]] },
+                1: {
+                    'A': rotate180([[[0,0], [0,1]]]), // Original 1A Odd rotated 180 clockwise
+                    'B': [[[0,0], [1,0]]]
+                },
+                2: {
+                    'A': [[[0,0], [1,0]], [[1,0], [2,0]]], // Two vertical segments connected in a vertical line
+                    'B': [[[0,0], [1,0]], [[1,0], [2,0]]] // Two vertical segments connected in a vertical line
+                },
+                3: {
+                    // New 3A Odd: L-shape, right from (0,0), then up.
+                    'A': [[[0,0], [0,1]], [[0,0], [-1,0]]],
+                    // New 3B Odd: L-shape, right from (0,0), then down from end of first segment, rotated 180
+                    'B': [[[0,0], [0,-1]], [[0,0], [-1,0]]]
+                },
+                4: {
+                    'A': [[[0,0], [0,1]], [[0,1], [-1,1]], [[0,1], [1,1]]], // Swapped with original 4B Odd
+                    'B': [[[0,0], [0,-1]], [[0,-1], [-1,-1]], [[0,-1], [1,-1]]] // Swapped with original 4A Odd
+                },
                 5: {
-                    'A': [[[0,0], [0,-1]], [[0,-1], [1,-1]], [[1,-1], [1,-2]]], // Flipped vertically
-                    'B': [[[0,0], [0,1]], [[0,1], [1,1]], [[1,1], [1,2]]] // Now what 5B Even used to be
+                    'A': [[[0,0], [0,-1]], [[0,-1], [1,-1]], [[1,-1], [1,-2]]],
+                    'B': [[[0,0], [0,1]], [[0,1], [1,1]], [[1,1], [1,2]]]
                 },
                 6: { 'A': [[[0,0], [1,0]], [[1,0], [2,0]], [[2,0], [2,-1]]], 'B': [[[0,0], [1,0]], [[1,0], [2,0]], [[2,0], [2,1]]] }
             },
             'Even': {
-                1: { 'A': [[[0,0], [1,0]]], 'B': [[[0,0], [0,1]]] },
-                2: { 'A': [[[0,0], [1,0]], [[1,0], [1,1]]], 'B': [[[0,0], [0,1]], [[0,1], [1,1]]] },
-                3: { 'A': [[[0,0], [0,1]], [[0,1], [0,2]]], 'B': [[[0,0], [1,0]], [[1,0], [2,0]]] },
-                4: { 'A': [[[0,0], [-1,0]], [[-1,0], [-1,-1]], [[-1,0], [-1,1]]], 'B': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,0], [1,1]]] },
+                1: {
+                    'A': rotate180([[[0,0], [1,0]]]), // Original 1A Even rotated 180 clockwise
+                    'B': [[[0,0], [0,1]]]
+                },
+                2: {
+                    'A': [[[0,0], [0,1]], [[0,1], [0,2]]], // Two horizontal segments connected in a horizontal line
+                    'B': [[[0,0], [0,1]], [[0,1], [0,2]]] // Two horizontal segments connected in a horizontal line
+                },
+                3: {
+                    // New 3A Even: Same as 3A Odd, rotated 180
+                    'A': [[[0,0], [0,1]], [[0,0], [1,0]]],
+                    // New 3B Even: Same as 3B Odd
+                    'B': [[[0,0], [0,-1]], [[0,0], [1,0]]]
+                },
+                4: {
+                    'A': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,0], [1,1]]], // Swapped with original 4B Even
+                    'B': [[[0,0], [-1,0]], [[-1,0], [-1,-1]], [[-1,0], [-1,1]]] // Swapped with original 4A Even
+                },
                 5: {
                     'A': [[[0,0], [1,0]], [[1,0], [1,1]], [[1,1], [2,1]]],
-                    'B': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,-1], [2,-1]]] // Rotated 90 degrees clockwise
+                    'B': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,-1], [2,-1]]]
                 },
                 6: { 'A': [[[0,0], [0,-1]], [[0,-1], [0,-2]], [[0,-2], [-1,-2]]], 'B': [[[0,0], [0,1]], [[0,1], [0,2]], [[0,2], [-1,2]]] }
             }
