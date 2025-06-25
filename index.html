@@ -1444,8 +1444,8 @@
                 } else if (bucketsInArea.length === 1) { 
                     
                     let scoreSameType = 0;
-                    // Adjusted score for 1 animal to 1 point
-                    const sameScoresMap = {1: 1, 2: 4, 3: 8, 4: 15}; 
+                    // Adjusted score for 1 animal to 2 points per Dr Finn's response
+                    const sameScoresMap = {1: 2, 2: 4, 3: 8, 4: 15}; 
                     for (const count of Object.values(animalCounts)) {
                         scoreSameType = Math.max(scoreSameType, sameScoresMap[count] || 0);
                     }
