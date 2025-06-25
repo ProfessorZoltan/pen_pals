@@ -336,6 +336,7 @@
                     <!-- Scoring results will be displayed here -->
                 </div>
                 <h3 id="totalScoreDisplay">Total Score: 0</h3>
+                <p id="achievementDisplay" style="font-size: 1.2em; font-weight: bold; margin-top: 15px;"></p>
                 <button id="newGameBtn">Start New Game</button>
             </div>
 
@@ -378,6 +379,7 @@
         const scoringResultsDiv = document.getElementById('scoringResults');
         const totalScoreDisplay = document.getElementById('totalScoreDisplay');
         const newGameBtn = document.getElementById('newGameBtn');
+        const achievementDisplay = document.getElementById('achievementDisplay'); // New element for achievement
 
         // New elimination controls
         const columnEliminationControls = document.getElementById('columnEliminationControls');
@@ -588,12 +590,12 @@
                         const nC = c + dc;
 
                         if (nR >= 0 && nR < paddedRows && nC >= 0 && nC < paddedCols && !tempVisitedPadded[nR][nC]) {
-                            let segmentCrossed = null;
+                            let segmentCrossed = null; 
                             if (dr === -1) segmentCrossed = [[r - 1, c - 1], [r - 1, c]];
                             else if (dr === 1) segmentCrossed = [[r, c - 1], [r, c]];
                             else if (dc === -1) segmentCrossed = [[r - 1, c - 1], [r, c - 1]];
                             else if (dc === 1) segmentCrossed = [[r - 1, c], [r, c]];
-
+                            
                             let isBlockingFence = false;
                             if (segmentCrossed) {
                                 const [[sR1, sC1], [sR2, sC2]] = segmentCrossed;
@@ -666,7 +668,7 @@
                 const py1 = r1 * scale + offsetY;
                 const px2 = c2 * scale + offsetX;
                 const py2 = r2 * scale + offsetY;
-
+                
                 ctxTarget.moveTo(px1, py1);
                 ctxTarget.lineTo(px2, py2);
             });
@@ -675,7 +677,7 @@
             // Draw anchor point (0,0 relative to shape's definition)
             const anchorPx = 0 * scale + offsetX;
             const anchorPy = 0 * scale + offsetY;
-
+            
             const anchorRadius = scaledFenceLineWidth * 1.5;
             ctxTarget.fillStyle = "red";
             ctxTarget.strokeStyle = "white";
@@ -734,7 +736,7 @@
 
         function rollDice() {
             game.dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
-
+            
             let diceText = `${game.dice[0]} & ${game.dice[1]}`;
             if (game.dice[0] === game.dice[1]) {
                 diceText += " (You may turn one die to any number you'd like!)";
@@ -865,7 +867,7 @@
                 if (FENCE_CHART[rowType] && FENCE_CHART[rowType][col]) {
                     for (const variant in FENCE_CHART[rowType][col]) {
                         const chartKey = `${col}-${rowType}-${variant}`;
-                        if (allTrulyAvailableOptions.has(chartKey)) {
+                        if (allTrulyAvailableOptions.has(chartKey)) { 
                             diceRollMatches.add(chartKey);
                         }
                     }
@@ -912,7 +914,7 @@
             } else {
                 // State 3: Absolutely no options left (true wildcard/game over).
                 addMessage('No fence options available for this turn. Game might be over!', 'error');
-                game.wildCardActive = true;
+                game.wildCardActive = true; 
                 game.chosenShapeSource = 'wildcard'; // Signifies no moves at all
                 optionsForMainChart.clear();
                 optionsForAlternateChart.clear();
@@ -935,7 +937,7 @@
                 selectedChartKey = Array.from(col1AlternateExplicitOptions).sort()[0];
                 initialSelectedSource = 'alternate'; // If only alternate options are left
             }
-
+            
             // Set game.chosenShapeForPlacement and related flags based on auto-selection
             if (selectedChartKey) {
                 const [colNum, rowType, variant] = selectedChartKey.split('-');
@@ -965,7 +967,7 @@
         // Draws the main dice-driven fence chart (all columns, highlights based on availableOptions)
         function drawMainFenceChart(availableOptions) {
             const rowTypes = ['Odd', 'Even'];
-            const columnVariants = ['A', 'B'];
+            const columnVariants = ['A', 'B']; 
 
             // Remove previous dynamically added cells and row labels (keep the fixed header row)
             const oldDynamicElements = visualFenceChartDiv.querySelectorAll('.chart-row-label, .chart-cell');
@@ -984,7 +986,7 @@
                 for (let colNum = 1; colNum <= 6; colNum++) { // Loop for all columns 1 through 6
                     columnVariants.forEach(variantLetter => {
                         const cellDiv = document.createElement('div');
-                        const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`;
+                        const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`; 
                         cellDiv.classList.add('chart-cell');
                         cellDiv.id = cellId;
                         cellDiv.dataset.chartKey = `${colNum}-${rowType}-${variantLetter}`;
@@ -998,10 +1000,10 @@
                             cellCanvas.height = PREVIEW_CANVAS_SIZE;
                             cellDiv.appendChild(cellCanvas);
                             const cellCtx = cellCanvas.getContext('2d');
-                            drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black');
+                            drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black'); 
 
                             const currentChartKey = `${colNum}-${rowType}-${variantLetter}`;
-                            const isUnavailable = game.unavailablePieces.has(currentChartKey);
+                            const isUnavailable = game.unavailablePieces.has(currentChartKey); 
                             const isAvailable = availableOptions.has(currentChartKey); // Check against options passed to this function
 
                             if (isUnavailable) {
@@ -1022,14 +1024,14 @@
                             cellDiv.addEventListener('click', (event) => {
                                 if (isAvailable && !game.awaitingColumnElimination) {
                                     document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
-                                    event.currentTarget.classList.add('selected');
-
+                                    event.currentTarget.classList.add('selected'); 
+                                    
                                     game.chosenShapeForPlacement = shapeData;
                                     game.chosenChartKeyForPlacement = currentChartKey;
-                                    game.chosenShapeSource = event.currentTarget.dataset.source;
+                                    game.chosenShapeSource = event.currentTarget.dataset.source; 
                                     drawFenceShapePreview(game.chosenShapeForPlacement);
                                     updatePlaceButtonState();
-                                    hideMessages();
+                                    hideMessages(); 
                                 } else if (game.awaitingColumnElimination) {
                                      addMessage("Please select a column to eliminate first!", 'info');
                                 } else {
@@ -1050,7 +1052,7 @@
         // Draws the alternate fence chart (only Column 1)
         function drawAlternateFenceChart(availableOptions) {
             const rowTypes = ['Odd', 'Even'];
-            const columnVariants = ['A', 'B'];
+            const columnVariants = ['A', 'B']; 
 
             // Clear previous content
             const oldDynamicElements = alternateFenceChartDiv.querySelectorAll('.chart-row-label, .chart-cell');
@@ -1076,7 +1078,7 @@
                 const colNum = 1; // Only Column 1 for this chart
                 columnVariants.forEach(variantLetter => {
                     const cellDiv = document.createElement('div');
-                    const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`;
+                    const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`; 
                     cellDiv.classList.add('chart-cell');
                     cellDiv.id = cellId;
                     cellDiv.dataset.chartKey = `${colNum}-${rowType}-${variantLetter}`;
@@ -1090,27 +1092,27 @@
                         cellCanvas.height = PREVIEW_CANVAS_SIZE;
                         cellDiv.appendChild(cellCanvas);
                         const cellCtx = cellCanvas.getContext('2d');
-                        drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black');
+                        drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black'); 
 
                         const currentChartKey = `${colNum}-${rowType}-${variantLetter}`;
-
+                        
                         // Per new rule: Column 1 alternate pieces are ALWAYS visually available for selection,
                         // regardless of their status in game.unavailablePieces.
                         cellDiv.classList.add('available');
                         cellDiv.style.cursor = 'pointer';
-
+                        
                         cellDiv.addEventListener('click', (event) => {
                             // The actual selection still needs to check if game is in the right phase
                             if (!game.awaitingColumnElimination) {
                                 document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
-                                event.currentTarget.classList.add('selected');
-
+                                event.currentTarget.classList.add('selected'); 
+                                
                                 game.chosenShapeForPlacement = shapeData;
                                 game.chosenChartKeyForPlacement = currentChartKey;
-                                game.chosenShapeSource = event.currentTarget.dataset.source;
+                                game.chosenShapeSource = event.currentTarget.dataset.source; 
                                 drawFenceShapePreview(game.chosenShapeForPlacement);
                                 updatePlaceButtonState();
-                                hideMessages();
+                                hideMessages(); 
                             } else {
                                 addMessage("Please select a fence type to eliminate first!", 'info');
                             }
@@ -1139,11 +1141,11 @@
             );
 
             if (isPlacementValid(newFenceSegments)) {
-                saveGameState();
+                saveGameState(); 
                 game.fences.push(...newFenceSegments);
-
+                
                 const [placedColNum, placedRowType, placedVariant] = game.chosenChartKeyForPlacement.split('-');
-
+                
                 if (parseInt(placedColNum) !== 1) { // This is a regular piece from columns 2-6
                     // Mark the chosen piece as unavailable
                     game.unavailablePieces.add(game.chosenChartKeyForPlacement);
@@ -1192,7 +1194,7 @@
                 drawFenceShapePreview([]);
 
             } else {
-                drawBoard();
+                drawBoard(); 
             }
             updateDebugInfo();
         }
@@ -1201,7 +1203,7 @@
         function showColumnEliminationControls() {
             gameActiveControls.style.display = 'none';
             columnEliminationControls.style.display = 'block';
-            hideMessages();
+            hideMessages(); 
 
             addMessage("You chose an alternate Column 1 fence. Now, select *one specific fence type (e.g., 2A, 5B)* to make unavailable from future turns. This will make both its Odd and Even variants unavailable.", 'info');
 
@@ -1214,7 +1216,7 @@
             for (let col = 1; col <= 6; col++) { // Now including col 1 as target for elimination
                 for (const variant of columnVariants) { // Only iterate A and B variants
                     const colVariantKey = `${col}-${variant}`; // e.g., "3-A"
-
+                    
                     let isColVariantFullyUnavailable = true; // Assume fully unavailable unless proven otherwise
 
                     // Check if *both* Odd and Even variants of this col-variant pair are already unavailable
@@ -1229,18 +1231,18 @@
 
                     // A column-variant is "available to eliminate" if at least one of its Odd/Even pieces exists AND is not yet unavailable
                     if ((oddExists && !oddUnavailable) || (evenExists && !evenUnavailable)) {
-                        isColVariantFullyUnavailable = false;
+                        isColVariantFullyUnavailable = false; 
                     }
 
                     const button = document.createElement('button');
                     button.textContent = `${col}${variant}`; // Display like 1A, 2B, etc.
                     button.dataset.colVariantToEliminate = colVariantKey; // Store as "colNum-variantLetter"
-
+                    
                     if (isColVariantFullyUnavailable) {
                         button.disabled = true;
                         button.style.opacity = '0.5';
                         button.style.cursor = 'not-allowed';
-                        button.textContent += " (All Used)";
+                        button.textContent += " (All Used)"; 
                     } else {
                         // All buttons that can be eliminated will be enabled, including 1A and 1B if they are not fully used
                         button.addEventListener('click', (event) => {
@@ -1256,7 +1258,7 @@
             if (columnEliminationButtons.children.length === 0 || Array.from(columnEliminationButtons.children).every(btn => btn.disabled)) {
                 addMessage("No further fence types are available to eliminate! Game will proceed without additional elimination.", 'warning');
                 game.awaitingColumnElimination = false;
-                game.turn++;
+                game.turn++; 
                 if (game.turn <= TURNS) {
                     rollDice();
                     drawBoard();
@@ -1270,7 +1272,7 @@
         // Handles the selection of a specific (numerical column, variant letter) pair to eliminate
         // (e.g., if user selects '3A', then '3-Odd-A' and '3-Even-A' become unavailable)
         function eliminateColVariantPair(colNumToEliminate, variantLetterToEliminate) {
-            saveGameState();
+            saveGameState(); 
             const rowTypes = ['Odd', 'Even'];
 
             for (const rType of rowTypes) {
@@ -1282,13 +1284,13 @@
             }
             addMessage(`Fence type ${colNumToEliminate}${variantLetterToEliminate} (both Odd and Even variants) has been eliminated!`, 'info');
 
-            game.awaitingColumnElimination = false;
+            game.awaitingColumnElimination = false; 
             columnEliminationControls.style.display = 'none';
             gameActiveControls.style.display = 'block';
 
-            game.turn++;
+            game.turn++; 
             if (game.turn <= TURNS) {
-                rollDice();
+                rollDice(); 
                 drawBoard();
                 updateControls();
             } else {
@@ -1299,9 +1301,9 @@
         function endGame() {
             addMessage("Game Over! All turns completed.", 'info');
             gameActiveControls.style.display = 'none';
-            columnEliminationControls.style.display = 'none';
+            columnEliminationControls.style.display = 'none'; 
             gameOverControls.style.display = 'block';
-            drawBoard();
+            drawBoard(); 
 
             calculateFinalScores();
         }
@@ -1313,26 +1315,26 @@
 
             scoringResultsDiv.innerHTML = '';
 
-            const scoredBucketsTracker = new Set();
+            const scoredBucketsTracker = new Set(); 
 
             const scoredAreas = Array.from(enclosedAreas.entries())
                 .filter(([, cellsInArea]) => {
-                    return game.buckets.some(([bRow, bCol]) =>
+                    return game.buckets.some(([bRow, bCol]) => 
                         bCol < NUM_COLS && cellsInArea.some(cell => cell[0] === bRow && cell[1] === bCol)
                     );
                 })
                 .sort(([, cellsA], [, cellsB]) => {
                     const getBucketNumbers = (cellsArr) => {
-                        return game.buckets.filter(([bRow, bCol]) =>
+                        return game.buckets.filter(([bRow, bCol]) => 
                             bCol < NUM_COLS && cellsArr.some(cell => cell[0] === bRow && cell[1] === bCol)
                         ).map((bucketCoord) => {
                             return game.buckets.findIndex(origBucket => origBucket[0] === bucketCoord[0] && origBucket[1] === bucketCoord[1]) + 1;
-                        }).sort((a,b)=>a-b);
+                        }).sort((a,b)=>a-b); 
                     };
 
                     const bucketsA = getBucketNumbers(cellsA);
                     const bucketsB = getBucketNumbers(cellsB);
-
+                    
                     return (bucketsA.length > 0 ? bucketsA[0] : Infinity) - (bucketsB.length > 0 ? bucketsB[0] : Infinity);
                 });
 
@@ -1343,14 +1345,14 @@
                 const areaScoreBox = document.createElement('div');
                 areaScoreBox.classList.add('score-box');
 
-                const bucketsInArea = game.buckets.filter(([bRow, bCol]) =>
+                const bucketsInArea = game.buckets.filter(([bRow, bCol]) => 
                     bCol < NUM_COLS && cellsInArea.some(cell => cell[0] === bRow && cell[1] === bCol)
                 );
                 const animalsInArea = [];
                 for (const posStr in game.animals) {
                     const [aRow, aCol] = posStr.split(',').map(Number);
                     if (aCol < NUM_COLS && cellsInArea.some(cell => cell[0] === aRow && cell[1] === aCol)) {
-                        animalsInArea.push(game.animals[posStr]);
+                        animalsInArea.push(game.animals[posStr]); 
                     }
                 }
 
@@ -1361,13 +1363,13 @@
 
                 if (primaryBucket && scoredBucketsTracker.has(primaryBucket)) {
                     console.log(`  Area ID ${areaId} skipped as its primary bucket (${primaryBucket}) has already been scored.`);
-                    return;
+                    return; 
                 }
 
 
-                let currentAreaScore = 0;
-
-                let animalCounts = {};
+                let currentAreaScore = 0; 
+                
+                let animalCounts = {}; 
                 animalsInArea.forEach(type => {
                     animalCounts[type] = (animalCounts[type] || 0) + 1;
                 });
@@ -1381,22 +1383,22 @@
                 console.log(`Scoring Area ID ${areaId} (Buckets: ${areaBucketNumbers.join(', ')}): Animals ${displayAnimals || 'None'}`);
 
 
-                if (bucketsInArea.length > 1) {
-                    currentAreaScore = animalsInArea.length;
+                if (bucketsInArea.length > 1) { 
+                    currentAreaScore = animalsInArea.length; 
                     htmlContent += `<p><strong>Score:</strong> ${currentAreaScore} points (1 per individual animal).</p>`;
                     console.log(`  Multiple buckets rule: ${currentAreaScore} points.`);
 
-                } else if (bucketsInArea.length === 1) {
-
+                } else if (bucketsInArea.length === 1) { 
+                    
                     let scoreSameType = 0;
-                    const sameScoresMap = {1: 2, 2: 4, 3: 8, 4: 15};
+                    const sameScoresMap = {1: 2, 2: 4, 3: 8, 4: 15}; 
                     for (const count of Object.values(animalCounts)) {
                         scoreSameType = Math.max(scoreSameType, sameScoresMap[count] || 0);
                     }
                     console.log(`  Single bucket - Same Type Potential Score: ${scoreSameType}`);
 
                     let scoreDifferentTypes = 0;
-                    const diffScoresMap = {1: 1, 2: 3, 3: 6, 4: 10};
+                    const diffScoresMap = {1: 1, 2: 3, 3: 6, 4: 10}; 
                     const numDiffTypes = Object.keys(animalCounts).length;
                     scoreDifferentTypes = diffScoresMap[numDiffTypes] || 0;
                     console.log(`  Single bucket - Different Types Potential Score: ${scoreDifferentTypes}`);
@@ -1411,10 +1413,10 @@
                         console.log(`  Single bucket: Final Score ${currentAreaScore} (Different Types chosen).`);
                     }
                 }
-
-                totalScore += currentAreaScore;
+                
+                totalScore += currentAreaScore; 
                 if (primaryBucket) {
-                    scoredBucketsTracker.add(primaryBucket);
+                    scoredBucketsTracker.add(primaryBucket); 
                 }
 
                 areaScoreBox.innerHTML = htmlContent;
@@ -1423,7 +1425,7 @@
 
             totalScoreDisplay.textContent = `Total Score: ${totalScore}`;
             console.log("Final Total Score:", totalScore);
-            
+
             // --- Achievement Logic ---
             let achievement = "";
             if (totalScore >= 55) {
@@ -1451,26 +1453,26 @@
             const paddedCols = NUM_COLS + 2;
             const visitedPadded = Array(paddedRows).fill(0).map(() => Array(paddedCols).fill(false));
 
-            const queue = [[0, 0]];
+            const queue = [[0, 0]]; 
             visitedPadded[0][0] = true;
 
             let head = 0;
             while (head < queue.length) {
-                const [r, c] = queue[head++];
+                const [r, c] = queue[head++]; 
 
-                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; 
                 for (const [dr, dc] of directions) {
                     const nR = r + dr;
-                    const nC = c + dc;
+                    const nC = c + dc; 
 
                     if (nR >= 0 && nR < paddedRows && nC >= 0 && nC < paddedCols && !visitedPadded[nR][nC]) {
-                        let segmentCrossed = null;
+                        let segmentCrossed = null; 
 
-                        if (dr === -1) segmentCrossed = [[r - 1, c - 1], [r - 1, c]];
-                        else if (dr === 1) segmentCrossed = [[r, c - 1], [r, c]];
-                        else if (dc === -1) segmentCrossed = [[r - 1, c - 1], [r, c - 1]];
-                        else if (dc === 1) segmentCrossed = [[r - 1, c], [r, c]];
-
+                        if (dr === -1) segmentCrossed = [[r - 1, c - 1], [r - 1, c]]; 
+                        else if (dr === 1) segmentCrossed = [[r, c - 1], [r, c]];     
+                        else if (dc === -1) segmentCrossed = [[r - 1, c - 1], [r, c - 1]]; 
+                        else if (dc === 1) segmentCrossed = [[r - 1, c], [r, c]];     
+                        
                         let isBlockingPath = false;
                         if (segmentCrossed) {
                             const [[sR1, sC1], [sR2, sC2]] = segmentCrossed;
@@ -1497,21 +1499,21 @@
             console.log("Visited Padded Grid (true means open, reachable from outside):", visitedPadded);
 
 
-            const finalEnclosedAreas = new Map();
+            const finalEnclosedAreas = new Map(); 
             let areaIdCounter = 1;
-            const enclosedCellsGrid = Array(NUM_ROWS).fill(0).map(() => Array(NUM_COLS).fill(0));
+            const enclosedCellsGrid = Array(NUM_ROWS).fill(0).map(() => Array(NUM_COLS).fill(0)); 
 
-            for (let rCell = 0; rCell < NUM_ROWS; rCell++) {
+            for (let rCell = 0; rCell < NUM_ROWS; rCell++) { 
                 for (let cCell = 0; cCell < NUM_COLS; cCell++) {
                     if (!visitedPadded[rCell + 1][cCell + 1] && enclosedCellsGrid[rCell][cCell] === 0) {
                         const currentAreaCells = [];
-                        const internalQueue = [[rCell, cCell]];
+                        const internalQueue = [[rCell, cCell]]; 
                         enclosedCellsGrid[rCell][cCell] = areaIdCounter;
-
+                        
                         let internalHead = 0;
                         while(internalHead < internalQueue.length) {
                             const [currR, currC] = internalQueue[internalHead++];
-                            currentAreaCells.push([currR, currC]);
+                            currentAreaCells.push([currR, currC]); 
 
                             for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
                                 const nR = currR + dr;
@@ -1519,10 +1521,10 @@
 
                                 if (nR >= 0 && nR < NUM_ROWS && nC >= 0 && nC < NUM_COLS && enclosedCellsGrid[nR][nC] === 0) {
                                     let segmentBetweenCells;
-                                    if (dr === -1) segmentBetweenCells = [[currR, currC], [currR, currC + 1]];
-                                    else if (dr === 1) segmentBetweenCells = [[currR + 1, currC], [currR + 1, currC + 1]];
-                                    else if (dc === -1) segmentBetweenCells = [[currR, currC], [currR + 1, currC]];
-                                    else if (dc === 1) segmentBetweenCells = [[currR, currC + 1], [currR + 1, currC + 1]];
+                                    if (dr === -1) segmentBetweenCells = [[currR, currC], [currR, currC + 1]]; 
+                                    else if (dr === 1) segmentBetweenCells = [[currR + 1, currC], [currR + 1, currC + 1]]; 
+                                    else if (dc === -1) segmentBetweenCells = [[currR, currC], [currR + 1, currC]]; 
+                                    else if (dc === 1) segmentBetweenCells = [[currR, currC + 1], [currR + 1, currC + 1]]; 
 
                                     if (!normalizedFences.has(JSON.stringify(normalizeSegment(segmentBetweenCells)))) {
                                         internalQueue.push([nR, nC]);
@@ -1531,13 +1533,13 @@
                                 }
                             }
                         }
-                        finalEnclosedAreas.set(areaIdCounter, currentAreaCells);
+                        finalEnclosedAreas.set(areaIdCounter, currentAreaCells); 
                         areaIdCounter++;
                     }
                 }
             }
             console.log("Identified Enclosed Areas (game board cell coordinates):", Object.fromEntries(finalEnclosedAreas));
-            return finalEnclosedAreas;
+            return finalEnclosedAreas; 
         }
 
         // --- UI Update & Event Hndlers ---
@@ -1591,7 +1593,7 @@
                 Math.max(0, Math.min(intersectionR, NUM_ROWS)),
                 Math.max(0, Math.min(intersectionC, NUM_COLS))
             ];
-            updateControls();
+            updateControls(); 
         });
 
         placeFenceBtn.addEventListener('click', placeFence);
