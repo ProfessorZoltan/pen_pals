@@ -1423,6 +1423,20 @@
 
             totalScoreDisplay.textContent = `Total Score: ${totalScore}`;
             console.log("Final Total Score:", totalScore);
+            
+            // --- Achievement Logic ---
+            let achievement = "";
+            if (totalScore >= 55) {
+                achievement = "Farmer";
+            } else if (totalScore >= 50) {
+                achievement = "Apprentice";
+            } else if (totalScore >= 45) {
+                achievement = "Farmhand";
+            } else {
+                achievement = "Milker";
+            }
+            achievementDisplay.textContent = `Achievement: ${achievement}`;
+            // --- End Achievement Logic ---
         }
 
         const isValidGameBoardIntersection = (r, c) => {
