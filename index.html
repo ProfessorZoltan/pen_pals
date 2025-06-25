@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pen Pals Game</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column; /* Changed for mobile responsiveness */
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+            min-height: 100vh; /* Ensure body takes full height */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        #gameContainer {
+            display: flex;
+            flex-direction: column; /* Stack board and controls vertically on mobile */
+            gap: 20px;
+            width: 100%; /* Take full width on mobile */
+            max-width: 900px; /* Max width for larger screens */
+            align-items: center; /* Center content within game container */
+        }
+        #boardContainer {
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            max-width: 100%; /* Ensure canvas container fits on mobile */
+            overflow-x: auto; /* Allow horizontal scrolling if board is wider than screen */
+        }
+        canvas {
+            background-color: #F0EAD6; /* Parchment color */
+            display: block; /* Remove extra space below canvas */
+        }
+        #controls {
+            width: 100%; /* Take full width on mobile */
+            max-width: 400px; /* Max width for control panel on larger screens */
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        h1, h2, h3 {
+            color: #333;
+            margin-top: 0;
+            text-align: center;
+        }
+        .dice-display {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            word-break: break-word; /* Allow messages to wrap */
+        }
+        .message.error {
+            background-color: #ffe0e0;
+            color: #d32f2f;
+            border: 1px solid #d32f2f;
+        }
+        .message.warning {
+            background-color: #fffde7;
+            color: #ff8f00;
+            border: 1px solid #ff8f00;
+        }
+        .message.info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%; /* Full width buttons for mobile */
+            box-sizing: border-box;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        #undoBtn {
+            background-color: #f44336; /* Red for undo */
+        }
+        #undoBtn:hover:not(:disabled) {
+            background-color: #da190b;
+        }
+        .score-box {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        #debugInfo {
+            font-size: 0.8em;
+            margin-top: 20px;
+            color: #777;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Styles for visual fence chart */
+        #visualFenceChartContainer, #alternateFenceOptionsContainer {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #fcfcfc;
+            text-align: center;
+            overflow-x: auto; /* Allow horizontal scrolling if chart is wider than screen */
+        }
+        #visualFenceChart, #alternateFenceChart {
+            display: grid;
+            grid-template-rows: auto auto; /* 1 row for 'Odd', 1 row for 'Even' */
+            gap: 5px;
+            padding: 5px;
+            justify-content: center;
+            align-items: center;
+        }
+        #visualFenceChart {
+            /* 1 col for row label, then 12 columns for 1A-6B */
+            grid-template-columns: auto repeat(12, 1fr);
+            min-width: calc(13 * 60px + 20px); /* 13 columns * min-width + padding for label */
+        }
+        #alternateFenceChart {
+            /* 1 col for row label, then 2 columns for 1A, 1B */
+            grid-template-columns: auto repeat(2, 1fr);
+        }
+
+        .chart-header {
+            font-weight: bold;
+            text-align: center;
+            padding: 5px;
+        }
+        .chart-row-label {
+            font-weight: bold;
+            padding-right: 10px;
+            text-align: right;
+        }
+        .chart-cell {
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+            position: relative; /* For overlay text */
+            transition: all 0.1s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px; /* Ensure a minimum width for cells */
+            min-height: 60px; /* Ensure a minimum height for cells */
+        }
+        .chart-cell canvas {
+            display: block;
+            margin: auto; /* Center the canvas */
+        }
+        .chart-cell:not(.selected):not(.unavailable):hover {
+            background-color: #e6e6e6;
+        }
+
+        /* State classes for chart cells */
+        .chart-cell.available {
+            border: 2px solid #4CAF50; /* Green border for available */
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+        .chart-cell.selected {
+            border: 2px solid #2196F3; /* Blue border for selected */
+            background-color: #e0f2f7; /* Light blue background for selected */
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.8);
+        }
+        .chart-cell.unavailable { /* Unified class for used and eliminated */
+            background-color: #f0f0f0;
+            border: 1px dashed #999;
+            cursor: not-allowed;
+        }
+        .chart-cell .overlay-text { /* Specific selector for direct child */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+            pointer-events: none; /* Allow clicks to pass through to the cell */
+            z-index: 10; /* Ensure it's above canvas */
+        }
+
+        /* Styles for column elimination modal/section */
+        #columnEliminationControls {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            text-align: center;
+            margin-top: 20px; /* Space from other controls */
+        }
+        #columnEliminationControls .column-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        #columnEliminationControls .column-buttons button {
+            width: 80px; /* Adjusted width for "Column X" buttons */
+            height: 40px;
+            background-color: #2196F3; /* Blue for column selection */
+            font-size: 1.1em;
+        }
+        #columnEliminationControls .column-buttons button:hover:not(:disabled) {
+            background-color: #1976D2;
+        }
+
+
+        /* Desktop specific styles */
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row; /* Side-by-side on desktop */
+                align-items: flex-start;
+            }
+            #gameContainer {
+                flex-direction: row; /* Board and controls side-by-side */
+                justify-content: center;
+                max-width: unset; /* Remove max-width on desktop */
+            }
+            #controls {
+                width: 350px; /* Fixed width for controls on desktop */
+            }
+            button {
+                width: auto; /* Auto width for buttons on desktop */
+            }
+            #placeFenceBtn, #undoBtn, #newGameBtn {
+                display: block; /* Make buttons block for vertical stacking */
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="boardContainer">
+            <canvas id="gameCanvas" width="420" height="420"></canvas>
+        </div>
+        <div id="controls">
+            <h2 id="turnDisplay">Turn 1/12</h2>
+
+            <div id="gameActiveControls">
+                <h3>1. Choose a Fence Segment</h3>
+                <p>You rolled: <span class="dice-display" id="diceRoll">-- & --</span></p>
+
+                <div id="messageArea"></div>
+
+                <!-- Main Fence Chart (all columns, available by dice or exhausted/wildcard) -->
+                <div id="visualFenceChartContainer">
+                    <h4>Dice-Driven Fence Chart</h4>
+                    <div id="visualFenceChart">
+                        <div class="chart-header"></div> <!-- Empty for row labels -->
+                        <div class="chart-header">1A</div>
+                        <div class="chart-header">1B</div>
+                        <div class="chart-header">2A</div>
+                        <div class="chart-header">2B</div>
+                        <div class="chart-header">3A</div>
+                        <div class="chart-header">3B</div>
+                        <div class="chart-header">4A</div>
+                        <div class="chart-header">4B</div>
+                        <div class="chart-header">5A</div>
+                        <div class="chart-header">5B</div>
+                        <div class="chart-header">6A</div>
+                        <div class="chart-header">6B</div>
+                        <!-- Row labels and cells will be dynamically added here by JS -->
+                    </div>
+                </div>
+
+                <!-- New Alternate Fence Options Panel (only Column 1 if available and not covered by dice) -->
+                <div id="alternateFenceOptionsContainer">
+                    <h4>Alternate Fence Options (Column 1)</h4>
+                    <div id="alternateFenceChart">
+                        <div class="chart-header"></div> <!-- Empty for row labels -->
+                        <div class="chart-header">1A</div>
+                        <div class="chart-header">1B</div>
+                        <!-- Cells for Column 1 will be dynamically added here by JS -->
+                    </div>
+                </div>
+
+                <p>Preview of selected fence:</p>
+                <canvas id="previewCanvas" width="200" height="100" style="border: 1px dashed #ccc; background-color: #fafafa;"></canvas>
+
+                <h3>2. Place the Fence</h3>
+                <p id="anchorDisplay">Selected anchor intersection: `Row --`, `Col --`</p>
+                <button id="placeFenceBtn" disabled>Place Fence</button>
+                <button id="undoBtn" disabled>Undo Last Fence</button>
+            </div>
+
+            <div id="columnEliminationControls" style="display: none;">
+                <h3>Eliminate a Piece</h3>
+                <p>You chose an alternate Column 1 fence. Now, select a specific fence type to make unavailable from future turns.</p>
+                <div class="column-buttons" id="columnEliminationButtons">
+                    <!-- Column buttons will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <div id="gameOverControls" style="display: none;">
+                <h3>Final Scoring</h3>
+                <div id="scoringResults">
+                    <!-- Scoring results will be displayed here -->
+                </div>
+                <h3 id="totalScoreDisplay">Total Score: 0</h3>
+                <button id="newGameBtn">Start New Game</button>
+            </div>
+
+            <div id="debugInfo" style="font-size: 0.8em; margin-top: 20px; color: #777;">
+                <h4>Debug Info:</h4>
+                <p>Unavailable Pieces: <span id="unavailablePiecesDisplay"></span></p>
+                <p>Wild Card Active: <span id="wildCardStatus">No</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Constants and Setup ---
+        const NUM_ROWS = 7;
+        const NUM_COLS = 6;
+        const CELL_SIZE = 60;
+        const BOARD_WIDTH = NUM_COLS * CELL_SIZE;
+        const BOARD_HEIGHT = NUM_ROWS * CELL_SIZE;
+        const TURNS = 12; // Game lasts twelve turns.
+        const FENCE_LINE_WIDTH = 5;
+        const PREVIEW_CANVAS_SIZE = 50; // Size for the small canvases in the chart grid
+
+        // DOM Elements
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        const turnDisplay = document.getElementById('turnDisplay');
+        const diceRollDisplay = document.getElementById('diceRoll');
+        const messageArea = document.getElementById('messageArea');
+        const visualFenceChartDiv = document.getElementById('visualFenceChart'); // Main container for the grid (Cols 2-6)
+        const alternateFenceOptionsContainer = document.getElementById('alternateFenceOptionsContainer'); // Container for alternate panel
+        const alternateFenceChartDiv = document.getElementById('alternateFenceChart'); // New container for Col 1
+        const anchorDisplay = document.getElementById('anchorDisplay');
+        const placeFenceBtn = document.getElementById('placeFenceBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const gameActiveControls = document.getElementById('gameActiveControls');
+        const gameOverControls = document.getElementById('gameOverControls');
+        const scoringResultsDiv = document.getElementById('scoringResults');
+        const totalScoreDisplay = document.getElementById('totalScoreDisplay');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        // New elimination controls
+        const columnEliminationControls = document.getElementById('columnEliminationControls');
+        const columnEliminationButtons = document.getElementById('columnEliminationButtons');
+
+        // Debug elements
+        const unavailablePiecesDisplay = document.getElementById('unavailablePiecesDisplay');
+        const wildCardStatus = document.getElementById('wildCardStatus');
+
+        // Animal emojis and names based on your specified types from Streamlit
+        const ANIMAL_EMOJIS = ['🦆', '🐑', '🐄', '🐖']; // Duck, Sheep, Cow, Pig
+        const ANIMAL_NAMES = ['Duck', 'Sheep', 'Cow', 'Pig'];
+
+        // Define mapping for animal types for clarity
+        const ANIMAL_TYPE_INDICES = {'Duck': 0, 'Sheep': 1, 'Cow': 2, 'Pig': 3};
+
+        // ANIMAL_LAYOUT: (row, col) -> animal_type_index (These are cell coordinates)
+        const ANIMAL_LAYOUT = {
+            '0,0': ANIMAL_TYPE_INDICES['Duck'], '2,5': ANIMAL_TYPE_INDICES['Duck'],
+            '3,2': ANIMAL_TYPE_INDICES['Duck'], '4,1': ANIMAL_TYPE_INDICES['Duck'],
+            '4,3': ANIMAL_TYPE_INDICES['Duck'], '6,0': ANIMAL_TYPE_INDICES['Duck'],
+            '6,1': ANIMAL_TYPE_INDICES['Duck'],
+
+            '0,2': ANIMAL_TYPE_INDICES['Sheep'], '0,5': ANIMAL_TYPE_INDICES['Sheep'],
+            '1,1': ANIMAL_TYPE_INDICES['Sheep'], '2,3': ANIMAL_TYPE_INDICES['Sheep'],
+            '3,0': ANIMAL_TYPE_INDICES['Sheep'],
+            '5,2': ANIMAL_TYPE_INDICES['Sheep'],
+            '6,4': ANIMAL_TYPE_INDICES['Sheep'],
+
+            '0,3': ANIMAL_TYPE_INDICES['Cow'], '1,4': ANIMAL_TYPE_INDICES['Cow'],
+            '2,0': ANIMAL_TYPE_INDICES['Cow'], '2,1': ANIMAL_TYPE_INDICES['Cow'],
+            '3,5': ANIMAL_TYPE_INDICES['Cow'],
+            '4,4': ANIMAL_TYPE_INDICES['Cow'],
+            '5,0': ANIMAL_TYPE_INDICES['Cow'],
+
+            '1,2': ANIMAL_TYPE_INDICES['Pig'], '1,5': ANIMAL_TYPE_INDICES['Pig'],
+            '3,4': ANIMAL_TYPE_INDICES['Pig'], '4,2': ANIMAL_TYPE_INDICES['Pig'],
+            '5,4': ANIMAL_TYPE_INDICES['Pig'], '5,5': ANIMAL_TYPE_INDICES['Pig'],
+            '6,3': ANIMAL_TYPE_INDICES['Pig'],
+        };
+
+        // BUCKET_E_O_LOCATIONS: [even_col_idx, odd_col_idx] for each row (0-indexed)
+        const BUCKET_E_O_LOCATIONS = [
+            [1, 4], // Row 0: Even (col 1), Odd (col 4)
+            [0, 3], // Row 1: Even (col 0), Odd (col 3)
+            [2, 4], // Row 2: Even (col 2), Odd (col 4)
+            [1, 3], // Row 3: Even (col 1), Odd (col 3)
+            [0, 5], // Row 4: Even (col 0), Odd (col 5)
+            [1, 3], // Row 5: Even (col 1), Odd (col 3)
+            [2, 5]  // Row 6: Even (col 2), Odd (col 5)
+        ];
+
+        // FENCE_CHART defines fence shapes as a list of segments.
+        // FENCE_CHART[rowType][colNum][variantLetter] -> shape
+        const FENCE_CHART = {
+            'Odd': {
+                1: { 'A': [[[0,0], [0,1]]], 'B': [[[0,0], [1,0]]] },
+                2: { 'A': [[[0,0], [0,1]], [[0,1], [1,1]]], 'B': [[[0,0], [1,0]], [[1,0], [1,1]]] },
+                3: { 'A': [[[0,0], [1,0]], [[1,0], [2,0]]], 'B': [[[0,0], [0,1]], [[0,1], [0,2]]] },
+                4: { 'A': [[[0,0], [0,-1]], [[0,-1], [-1,-1]], [[0,-1], [1,-1]]], 'B': [[[0,0], [0,1]], [[0,1], [-1,1]], [[0,1], [1,1]]] },
+                5: {
+                    'A': [[[0,0], [0,-1]], [[0,-1], [1,-1]], [[1,-1], [1,-2]]], // Flipped vertically
+                    'B': [[[0,0], [0,1]], [[0,1], [1,1]], [[1,1], [1,2]]] // Now what 5B Even used to be
+                },
+                6: { 'A': [[[0,0], [1,0]], [[1,0], [2,0]], [[2,0], [2,-1]]], 'B': [[[0,0], [1,0]], [[1,0], [2,0]], [[2,0], [2,1]]] }
+            },
+            'Even': {
+                1: { 'A': [[[0,0], [1,0]]], 'B': [[[0,0], [0,1]]] },
+                2: { 'A': [[[0,0], [1,0]], [[1,0], [1,1]]], 'B': [[[0,0], [0,1]], [[0,1], [1,1]]] },
+                3: { 'A': [[[0,0], [0,1]], [[0,1], [0,2]]], 'B': [[[0,0], [1,0]], [[1,0], [2,0]]] },
+                4: { 'A': [[[0,0], [-1,0]], [[-1,0], [-1,-1]], [[-1,0], [-1,1]]], 'B': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,0], [1,1]]] },
+                5: {
+                    'A': [[[0,0], [1,0]], [[1,0], [1,1]], [[1,1], [2,1]]],
+                    'B': [[[0,0], [1,0]], [[1,0], [1,-1]], [[1,-1], [2,-1]]] // Rotated 90 degrees clockwise
+                },
+                6: { 'A': [[[0,0], [0,-1]], [[0,-1], [0,-2]], [[0,-2], [-1,-2]]], 'B': [[[0,0], [0,1]], [[0,1], [0,2]], [[0,2], [-1,2]]] }
+            }
+        };
+
+        // --- Game State ---
+        let game = {};
+        let gameHistory = []; // To store states for undo functionality
+
+        function initializeGame() {
+            game = {
+                buckets: [],
+                fences: [],
+                unavailablePieces: new Set(), // Stores strings "colNum-rowType-variantLetter" that are unavailable (used or eliminated)
+                turn: 1,
+                animals: ANIMAL_LAYOUT,
+                dice: [0, 0],
+                messages: [],
+                chosenShapeForPlacement: null,
+                clickedIntersection: null,
+                chosenChartKeyForPlacement: null, // Tracks the specific chart entry (e.g., "3-Odd-A")
+                chosenShapeSource: null, // 'dice', 'alternate', 'exhaustedDice', 'wildcard'
+                wildCardActive: false,
+                awaitingColumnElimination: false // Flag for the column elimination step
+            };
+            gameHistory = []; // Clear history for new game
+
+            // Place buckets randomly
+            for (let rowIdx = 0; rowIdx < NUM_ROWS; rowIdx++) {
+                const die = Math.floor(Math.random() * 6) + 1;
+                const [eCol, oCol] = BUCKET_E_O_LOCATIONS[rowIdx];
+                const col = (die % 2 === 0) ? eCol : oCol;
+                game.buckets.push([rowIdx, col]);
+            }
+
+            saveGameState(); // Save initial state
+            rollDice(); // Initial dice roll
+            drawBoard();
+            updateControls();
+            hideMessages();
+            gameActiveControls.style.display = 'block';
+            gameOverControls.style.display = 'none';
+            columnEliminationControls.style.display = 'none'; // Ensure hidden at start
+        }
+
+        // --- Drawing Functions ---
+        function drawBoard() {
+            gameCanvas.width = BOARD_WIDTH;
+            gameCanvas.height = BOARD_HEIGHT;
+
+            ctx.clearRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+            ctx.fillStyle = '#F0EAD6';
+            ctx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= NUM_ROWS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(BOARD_WIDTH, i * CELL_SIZE);
+                ctx.stroke();
+            }
+            for (let j = 0; j <= NUM_COLS; j++) {
+                ctx.beginPath();
+                ctx.moveTo(j * CELL_SIZE, 0);
+                ctx.lineTo(j * CELL_SIZE, BOARD_HEIGHT);
+                ctx.stroke();
+            }
+
+            // Draw animals
+            ctx.font = `${CELL_SIZE * 0.6}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (const posStr in game.animals) {
+                const [r, c] = posStr.split(',').map(Number);
+                const animalIdx = game.animals[posStr];
+                if (c < NUM_COLS) {
+                    const emoji = ANIMAL_EMOJIS[animalIdx];
+                    ctx.fillText(emoji, c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2);
+                }
+            }
+
+            // Draw buckets
+            ctx.fillStyle = '#a7c7e7';
+            ctx.strokeStyle = '#00008b';
+            ctx.lineWidth = 2;
+            ctx.font = `${CELL_SIZE * 0.3}px sans-serif`;
+            for (let i = 0; i < game.buckets.length; i++) {
+                const [r, c] = game.buckets[i];
+                if (c < NUM_COLS) {
+                    const cx = c * CELL_SIZE + CELL_SIZE / 2;
+                    const cy = r * CELL_SIZE + CELL_SIZE / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(String(i + 1), cx, cy);
+                    ctx.fillStyle = '#a7c7e7';
+                }
+            }
+
+            // Draw fences
+            ctx.strokeStyle = "#8B4513";
+            ctx.lineWidth = FENCE_LINE_WIDTH;
+            for (const segment of game.fences) {
+                const [[r1, c1], [r2, c2]] = segment;
+                if (c1 <= NUM_COLS && c2 <= NUM_COLS) {
+                    ctx.beginPath();
+                    ctx.moveTo(c1 * CELL_SIZE, r1 * CELL_SIZE);
+                    ctx.lineTo(c2 * CELL_SIZE, r2 * CELL_SIZE);
+                    ctx.stroke();
+                }
+            }
+
+            // --- Debug overlay for visitedPadded grid ---
+            if (game.turn > TURNS) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                const paddedRows = NUM_ROWS + 2;
+                const paddedCols = NUM_COLS + 2;
+                const tempVisitedPadded = Array(paddedRows).fill(0).map(() => Array(paddedCols).fill(false));
+                const tempNormalizedFences = new Set(game.fences.map(seg => JSON.stringify(normalizeSegment(seg))));
+
+                const tempQueue = [[0, 0]];
+                tempVisitedPadded[0][0] = true;
+                let tempHead = 0;
+                while (tempHead < tempQueue.length) {
+                    const [r, c] = tempQueue[tempHead++];
+
+                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                    for (const [dr, dc] of directions) {
+                        const nR = r + dr;
+                        const nC = c + dc;
+
+                        if (nR >= 0 && nR < paddedRows && nC >= 0 && nC < paddedCols && !tempVisitedPadded[nR][nC]) {
+                            let segmentCrossed = null;
+                            if (dr === -1) segmentCrossed = [[r - 1, c - 1], [r - 1, c]];
+                            else if (dr === 1) segmentCrossed = [[r, c - 1], [r, c]];
+                            else if (dc === -1) segmentCrossed = [[r - 1, c - 1], [r, c - 1]];
+                            else if (dc === 1) segmentCrossed = [[r - 1, c], [r, c]];
+
+                            let isBlockingFence = false;
+                            if (segmentCrossed) {
+                                const [[sR1, sC1], [sR2, sC2]] = segmentCrossed;
+
+                                if (tempNormalizedFences.has(JSON.stringify(normalizeSegment(segmentCrossed)))) {
+                                    isBlockingFence = true;
+                                }
+                                else if (isValidGameBoardIntersection(sR1, sC1) && isValidGameBoardIntersection(sR2, sC2)) {
+                                    const isHorizontalBoundary = (sR1 === sR2 && (sR1 === 0 || sR1 === NUM_ROWS));
+                                    const isVerticalBoundary = (sC1 === sC2 && (sC1 === 0 || sC1 === NUM_COLS));
+                                    if (isHorizontalBoundary || isVerticalBoundary) {
+                                        isBlockingFence = true;
+                                    }
+                                }
+                            }
+                            if (!isBlockingFence) {
+                                tempQueue.push([nR, nC]);
+                                tempVisitedPadded[nR][nC] = true;
+                            }
+                        }
+                    }
+                }
+
+                for (let rCell = 0; rCell < NUM_ROWS; rCell++) {
+                    for (let cCell = 0; cCell < NUM_COLS; cCell++) {
+                        if (tempVisitedPadded[rCell + 1][cCell + 1]) {
+                            ctx.fillRect(cCell * CELL_SIZE, rCell * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draws a fence shape onto a target canvas (used for preview and chart cells)
+        function drawFenceShape(ctxTarget, shape, size, color = "blue") {
+            ctxTarget.clearRect(0, 0, size, size);
+            ctxTarget.strokeStyle = color;
+            ctxTarget.lineWidth = FENCE_LINE_WIDTH * (size / CELL_SIZE); // Scale line width too
+
+            // Calculate bounding box of the shape to center it
+            let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+            if (shape.length > 0) {
+                shape.forEach(segment => {
+                    segment.forEach(point => {
+                        minR = Math.min(minR, point[0]);
+                        maxR = Math.max(maxR, point[0]);
+                        minC = Math.min(minC, point[1]);
+                        maxC = Math.max(maxC, point[1]);
+                    });
+                });
+            } else { // Handle empty shape (e.g., for preview clear)
+                minR = 0; maxR = 0; minC = 0; maxC = 0;
+            }
+
+            const shapeWidth = (maxC - minC + 1);
+            const shapeHeight = (maxR - minR + 1);
+
+            // Calculate scaling factor to fit the shape within the target canvas
+            const scale = Math.min(size / shapeWidth, size / shapeHeight) * 0.8; // 0.8 to give some padding
+            const scaledFenceLineWidth = FENCE_LINE_WIDTH * (size / CELL_SIZE) / 2; // Adjusted for padding
+
+            // Calculate offsets to center the scaled shape
+            const offsetX = (size / 2) - (shapeWidth * scale / 2) - (minC * scale);
+            const offsetY = (size / 2) - (shapeHeight * scale / 2) - (minR * scale);
+
+            ctxTarget.beginPath();
+            shape.forEach(segment => {
+                const [[r1, c1], [r2, c2]] = segment;
+                const px1 = c1 * scale + offsetX;
+                const py1 = r1 * scale + offsetY;
+                const px2 = c2 * scale + offsetX;
+                const py2 = r2 * scale + offsetY;
+
+                ctxTarget.moveTo(px1, py1);
+                ctxTarget.lineTo(px2, py2);
+            });
+            ctxTarget.stroke();
+
+            // Draw anchor point (0,0 relative to shape's definition)
+            const anchorPx = 0 * scale + offsetX;
+            const anchorPy = 0 * scale + offsetY;
+
+            const anchorRadius = scaledFenceLineWidth * 1.5;
+            ctxTarget.fillStyle = "red";
+            ctxTarget.strokeStyle = "white";
+            ctxTarget.beginPath();
+            ctxTarget.arc(anchorPx, anchorPy, anchorRadius, 0, Math.PI * 2);
+            ctxTarget.fill();
+            ctxTarget.stroke();
+        }
+
+
+        // This function draws the currently selected fence shape for the main preview area
+        function drawFenceShapePreview(shape) {
+            drawFenceShape(previewCtx, shape, previewCanvas.width); // Use full preview canvas size
+        }
+
+
+        // --- Game Logic ---
+
+        function saveGameState() {
+            // Deep copy of game state to ensure independent history entries
+            // Convert sets to arrays for JSON stringify, then back to sets on restore
+            const stateToSave = {
+                ...game,
+                unavailablePieces: Array.from(game.unavailablePieces),
+            };
+            gameHistory.push(JSON.parse(JSON.stringify(stateToSave)));
+            updateUndoButtonState();
+        }
+
+        function restoreGameState() {
+            if (gameHistory.length > 1) { // Keep at least the initial state
+                gameHistory.pop(); // Remove current state
+                const restoredState = JSON.parse(JSON.stringify(gameHistory[gameHistory.length - 1]));
+                game = {
+                    ...restoredState,
+                    unavailablePieces: new Set(restoredState.unavailablePieces),
+                };
+
+                // If reverting during column elimination, ensure controls are correct
+                if (game.awaitingColumnElimination) {
+                    showColumnEliminationControls();
+                } else {
+                    gameActiveControls.style.display = 'block';
+                    columnEliminationControls.style.display = 'none';
+                    chooseFenceSegment(); // Re-populate and highlight visual chart based on restored state
+                }
+
+                drawBoard();
+                updateControls();
+                hideMessages(); // Clear messages on undo
+            } else {
+                addMessage("Cannot undo further. This is the start of the game.", 'warning');
+            }
+            updateUndoButtonState();
+        }
+
+        function rollDice() {
+            game.dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+
+            let diceText = `${game.dice[0]} & ${game.dice[1]}`;
+            if (game.dice[0] === game.dice[1]) {
+                diceText += " (You may turn one die to any number you'd like!)";
+            }
+            diceRollDisplay.textContent = diceText;
+
+            chooseFenceSegment(); // Automatically choose options after rolling
+        }
+
+        function getFenceSegments(anchorR, anchorC, shape) {
+            return shape.map(segment => {
+                const [[dr1, dc1], [dr2, dc2]] = segment;
+                return [[anchorR + dr1, anchorC + dc1], [anchorR + dr2, anchorC + dc2]];
+            });
+        }
+
+        // Helper to normalize a fence segment for consistent storage/comparison
+        function normalizeSegment(segment) {
+            const [[r1, c1], [r2, c2]] = segment;
+            if (r1 < r2 || (r1 === r2 && c1 < c2)) {
+                return [[r1, c1], [r2, c2]];
+            } else {
+                return [[r2, c2], [r1, c1]];
+            }
+        }
+
+        function isSegmentInBounds(segment) {
+            const [[r1, c1], [r2, c2]] = segment;
+            return (0 <= r1 && r1 <= NUM_ROWS && 0 <= c1 && c1 <= NUM_COLS &&
+                    0 <= r2 && r2 <= NUM_ROWS && 0 <= c2 && c2 <= NUM_COLS);
+        }
+
+        function isSegmentOverlapping(segment, existingFences) {
+            const normalizedNew = JSON.stringify(normalizeSegment(segment));
+            return existingFences.some(existingSeg => JSON.stringify(normalizeSegment(existingSeg)) === normalizedNew);
+        }
+
+        function isPlacementValid(newFenceSegments) {
+            game.messages = []; // Clear messages at the start of validation
+
+            const existingFencesNormalized = game.fences.map(seg => normalizeSegment(seg));
+
+            if (!newFenceSegments.every(seg => isSegmentInBounds(seg))) {
+                addMessage("Error: Fence must be entirely on the board (endpoints within grid intersections).", 'error');
+                return false;
+            }
+
+            if (newFenceSegments.some(seg => isSegmentOverlapping(seg, existingFencesNormalized))) {
+                addMessage("Error: Fences cannot overlap with existing fences.", 'error');
+                return false;
+            }
+
+            if (game.turn === 1) {
+                const touchesOuterWall = newFenceSegments.some(seg => {
+                    const [[r1, c1], [r2, c2]] = seg;
+                    return (r1 === 0 || c1 === 0 || r1 === NUM_ROWS || c1 === NUM_COLS ||
+                            r2 === 0 || c2 === 0 || r2 === NUM_ROWS || c2 === NUM_COLS);
+                });
+                if (!touchesOuterWall) {
+                    addMessage("Error: First fence must touch an outer wall.", 'error');
+                    return false;
+                }
+            } else {
+                const existingIntersections = new Set();
+                game.fences.forEach(seg => {
+                    existingIntersections.add(JSON.stringify(seg[0]));
+                    existingIntersections.add(JSON.stringify(seg[1]));
+                });
+
+                const newIntersections = new Set();
+                newFenceSegments.forEach(seg => {
+                    newIntersections.add(JSON.stringify(seg[0]));
+                    newIntersections.add(JSON.stringify(seg[1]));
+                });
+
+                let connected = false;
+                for (const newInt of newIntersections) {
+                    if (existingIntersections.has(newInt)) {
+                        connected = true;
+                        break;
+                    }
+                }
+                if (!connected) {
+                    addMessage("Error: New fences must connect to existing fences (share an intersection).", 'error');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Populates and updates the visual fence chart with available/unavailable states.
+        function chooseFenceSegment() {
+            hideMessages();
+            const [d1, d2] = game.dice;
+            const rowTypes = ['Odd', 'Even'];
+            const columnVariants = ['A', 'B'];
+
+            let diceRollMatches = new Set(); // Options matching dice roll, not unavailable
+            let col1AlternateExplicitOptions = new Set(); // Column 1 options specifically available as the 'alternate' choice
+            let allTrulyAvailableOptions = new Set(); // All options not unavailable from any column (for exhausted/wildcard)
+
+            const getRowType = (dieValue) => (dieValue % 2 !== 0) ? 'Odd' : 'Even';
+
+            // Phase 1: Identify all available options (not unavailable for main chart, or special for Col 1)
+            for (let col = 1; col <= 6; col++) {
+                for (const rowType of rowTypes) {
+                    if (FENCE_CHART[rowType] && FENCE_CHART[rowType][col]) {
+                        for (const variant in FENCE_CHART[rowType][col]) {
+                            const chartKey = `${col}-${rowType}-${variant}`;
+                            // For main chart, Column 1 pieces are still subject to unavailablePieces
+                            // as they can be eliminated by bonus action.
+                            if (!game.unavailablePieces.has(chartKey)) {
+                                allTrulyAvailableOptions.add(chartKey);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Phase 2: Identify dice-roll specific matches from the 'allTrulyAvailableOptions' pool
+            const diceRollCombinations = [
+                { col: d1, rowType: getRowType(d2) },
+                { col: d2, rowType: getRowType(d1) }
+            ];
+            diceRollCombinations.forEach(combo => {
+                const { col, rowType } = combo;
+                if (FENCE_CHART[rowType] && FENCE_CHART[rowType][col]) {
+                    for (const variant in FENCE_CHART[rowType][col]) {
+                        const chartKey = `${col}-${rowType}-${variant}`;
+                        if (allTrulyAvailableOptions.has(chartKey)) {
+                            diceRollMatches.add(chartKey);
+                        }
+                    }
+                }
+            });
+
+            // Populate explicit Column 1 alternate options: these are Col 1 options that are *not* dice matches
+            const colNum1 = 1;
+            for (const rowType of rowTypes) {
+                if (FENCE_CHART[rowType] && FENCE_CHART[rowType][colNum1]) {
+                    for (const variant in FENCE_CHART[rowType][colNum1]) {
+                        const chartKey = `${colNum1}-${rowType}-${variant}`;
+                        // Alternate options are always available for selection from this panel.
+                        // We filter dice matches so they don't appear redundant.
+                        if (!diceRollMatches.has(chartKey)) {
+                            col1AlternateExplicitOptions.add(chartKey);
+                        }
+                    }
+                }
+            }
+
+
+            game.wildCardActive = false; // Reset wildcard status
+            game.chosenShapeSource = null; // Reset source
+
+            let optionsForMainChart = new Set();
+            let optionsForAlternateChart = new Set();
+
+            if (diceRollMatches.size > 0) {
+                // State 1: Dice rolls offer valid, unused, non-unavailable options.
+                game.chosenShapeSource = 'dice';
+                optionsForMainChart = new Set(diceRollMatches); // Only highlight dice matches in main chart
+                optionsForAlternateChart = new Set(col1AlternateExplicitOptions); // Column 1 alternate options in their panel
+                alternateFenceOptionsContainer.style.display = optionsForAlternateChart.size > 0 ? 'block' : 'none'; // Only show if alternate options exist
+                hideMessages();
+            } else if (allTrulyAvailableOptions.size > 0) {
+                // State 2: No dice matches, but *some* other options (including Col 1) are available.
+                // This is the "Exhausted Dice Options" scenario.
+                addMessage("No fence options matching your dice roll are available. You may choose any unused fence shape, and its specific shape will become unavailable!", 'warning');
+                game.chosenShapeSource = 'exhaustedDice'; // Set source for elimination logic
+                optionsForMainChart = new Set(allTrulyAvailableOptions); // All remaining options show in main chart
+                optionsForAlternateChart.clear(); // Hide alternate chart
+                alternateFenceOptionsContainer.style.display = 'none';
+            } else {
+                // State 3: Absolutely no options left (true wildcard/game over).
+                addMessage('No fence options available for this turn. Game might be over!', 'error');
+                game.wildCardActive = true;
+                game.chosenShapeSource = 'wildcard'; // Signifies no moves at all
+                optionsForMainChart.clear();
+                optionsForAlternateChart.clear();
+                alternateFenceOptionsContainer.style.display = 'none';
+            }
+
+            // Draw the charts
+            drawMainFenceChart(optionsForMainChart);
+            drawAlternateFenceChart(col1AlternateExplicitOptions); // Pass all explicit alternate options, ignoring their unavailable status for visual display
+                                                                    // The rule states they are always available as alternate options.
+
+            // Auto-selection logic: Prioritize options from main chart, then alternate.
+            let selectedChartKey = null;
+            let initialSelectedSource = null;
+
+            if (optionsForMainChart.size > 0) {
+                selectedChartKey = Array.from(optionsForMainChart).sort()[0];
+                initialSelectedSource = game.chosenShapeSource; // Source is what was determined for the state (dice, exhaustedDice, wildcard)
+            } else if (col1AlternateExplicitOptions.size > 0) { // Check col1AlternateExplicitOptions directly for auto-selection
+                selectedChartKey = Array.from(col1AlternateExplicitOptions).sort()[0];
+                initialSelectedSource = 'alternate'; // If only alternate options are left
+            }
+
+            // Set game.chosenShapeForPlacement and related flags based on auto-selection
+            if (selectedChartKey) {
+                const [colNum, rowType, variant] = selectedChartKey.split('-');
+                game.chosenShapeForPlacement = FENCE_CHART[rowType][parseInt(colNum)][variant];
+                game.chosenChartKeyForPlacement = selectedChartKey;
+                game.chosenShapeSource = initialSelectedSource; // Final source of the selected shape
+
+                drawFenceShapePreview(game.chosenShapeForPlacement);
+
+                // Highlight the initially selected cell
+                document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
+                const selectedCell = document.getElementById(`chart-cell-${colNum}-${rowType}-${variant}`);
+                if (selectedCell) selectedCell.classList.add('selected');
+            } else {
+                // No options available, clear selection
+                game.chosenShapeForPlacement = null;
+                game.chosenChartKeyForPlacement = null;
+                game.chosenShapeSource = null;
+                drawFenceShapePreview([]);
+                document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
+            }
+
+            updatePlaceButtonState();
+            updateDebugInfo();
+        }
+
+        // Draws the main dice-driven fence chart (all columns, highlights based on availableOptions)
+        function drawMainFenceChart(availableOptions) {
+            const rowTypes = ['Odd', 'Even'];
+            const columnVariants = ['A', 'B'];
+
+            // Remove previous dynamically added cells and row labels (keep the fixed header row)
+            const oldDynamicElements = visualFenceChartDiv.querySelectorAll('.chart-row-label, .chart-cell');
+            oldDynamicElements.forEach(el => {
+                if (!el.classList.contains('chart-header')) { // Ensure we don't remove fixed headers
+                    el.remove();
+                }
+            });
+
+            rowTypes.forEach(rowType => {
+                const rowLabel = document.createElement('div');
+                rowLabel.classList.add('chart-row-label');
+                rowLabel.textContent = rowType;
+                visualFenceChartDiv.appendChild(rowLabel);
+
+                for (let colNum = 1; colNum <= 6; colNum++) { // Loop for all columns 1 through 6
+                    columnVariants.forEach(variantLetter => {
+                        const cellDiv = document.createElement('div');
+                        const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`;
+                        cellDiv.classList.add('chart-cell');
+                        cellDiv.id = cellId;
+                        cellDiv.dataset.chartKey = `${colNum}-${rowType}-${variantLetter}`;
+                        cellDiv.dataset.source = game.chosenShapeSource; // Source for main chart cells (dice, exhaustedDice, wildcard)
+
+                        const shapeData = FENCE_CHART[rowType] && FENCE_CHART[rowType][colNum] ? FENCE_CHART[rowType][colNum][variantLetter] : null;
+
+                        if (shapeData) {
+                            const cellCanvas = document.createElement('canvas');
+                            cellCanvas.width = PREVIEW_CANVAS_SIZE;
+                            cellCanvas.height = PREVIEW_CANVAS_SIZE;
+                            cellDiv.appendChild(cellCanvas);
+                            const cellCtx = cellCanvas.getContext('2d');
+                            drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black');
+
+                            const currentChartKey = `${colNum}-${rowType}-${variantLetter}`;
+                            const isUnavailable = game.unavailablePieces.has(currentChartKey);
+                            const isAvailable = availableOptions.has(currentChartKey); // Check against options passed to this function
+
+                            if (isUnavailable) {
+                                cellDiv.classList.add('unavailable');
+                                const overlay = document.createElement('div');
+                                overlay.classList.add('overlay-text');
+                                overlay.textContent = 'UNAVAILABLE';
+                                cellDiv.appendChild(overlay);
+                                cellDiv.style.cursor = 'not-allowed';
+                            } else if (isAvailable) {
+                                cellDiv.classList.add('available');
+                                cellDiv.style.cursor = 'pointer';
+                            } else {
+                                cellDiv.style.opacity = '0.5';
+                                cellDiv.style.cursor = 'not-allowed';
+                            }
+
+                            cellDiv.addEventListener('click', (event) => {
+                                if (isAvailable && !game.awaitingColumnElimination) {
+                                    document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
+                                    event.currentTarget.classList.add('selected');
+
+                                    game.chosenShapeForPlacement = shapeData;
+                                    game.chosenChartKeyForPlacement = currentChartKey;
+                                    game.chosenShapeSource = event.currentTarget.dataset.source;
+                                    drawFenceShapePreview(game.chosenShapeForPlacement);
+                                    updatePlaceButtonState();
+                                    hideMessages();
+                                } else if (game.awaitingColumnElimination) {
+                                     addMessage("Please select a column to eliminate first!", 'info');
+                                } else {
+                                    addMessage("This fence shape is not currently available.", 'warning');
+                                }
+                            });
+                        } else {
+                            cellDiv.textContent = 'N/A';
+                            cellDiv.style.opacity = '0.3';
+                            cellDiv.style.cursor = 'not-allowed';
+                        }
+                        visualFenceChartDiv.appendChild(cellDiv);
+                    });
+                }
+            });
+        }
+
+        // Draws the alternate fence chart (only Column 1)
+        function drawAlternateFenceChart(availableOptions) {
+            const rowTypes = ['Odd', 'Even'];
+            const columnVariants = ['A', 'B'];
+
+            // Clear previous content
+            const oldDynamicElements = alternateFenceChartDiv.querySelectorAll('.chart-row-label, .chart-cell');
+            oldDynamicElements.forEach(el => {
+                if (!el.classList.contains('chart-header')) {
+                    el.remove();
+                }
+            });
+
+            if (availableOptions.size === 0) {
+                alternateFenceOptionsContainer.style.display = 'none';
+                return;
+            } else {
+                alternateFenceOptionsContainer.style.display = 'block';
+            }
+
+            rowTypes.forEach(rowType => {
+                const rowLabel = document.createElement('div');
+                rowLabel.classList.add('chart-row-label');
+                rowLabel.textContent = rowType;
+                alternateFenceChartDiv.appendChild(rowLabel);
+
+                const colNum = 1; // Only Column 1 for this chart
+                columnVariants.forEach(variantLetter => {
+                    const cellDiv = document.createElement('div');
+                    const cellId = `chart-cell-${colNum}-${rowType}-${variantLetter}`;
+                    cellDiv.classList.add('chart-cell');
+                    cellDiv.id = cellId;
+                    cellDiv.dataset.chartKey = `${colNum}-${rowType}-${variantLetter}`;
+                    cellDiv.dataset.source = 'alternate'; // Mark as alternate source
+
+                    const shapeData = FENCE_CHART[rowType] && FENCE_CHART[rowType][colNum] ? FENCE_CHART[rowType][colNum][variantLetter] : null;
+
+                    if (shapeData) {
+                        const cellCanvas = document.createElement('canvas');
+                        cellCanvas.width = PREVIEW_CANVAS_SIZE;
+                        cellCanvas.height = PREVIEW_CANVAS_SIZE;
+                        cellDiv.appendChild(cellCanvas);
+                        const cellCtx = cellCanvas.getContext('2d');
+                        drawFenceShape(cellCtx, shapeData, PREVIEW_CANVAS_SIZE, 'black');
+
+                        const currentChartKey = `${colNum}-${rowType}-${variantLetter}`;
+
+                        // Per new rule: Column 1 alternate pieces are ALWAYS visually available for selection,
+                        // regardless of their status in game.unavailablePieces.
+                        cellDiv.classList.add('available');
+                        cellDiv.style.cursor = 'pointer';
+
+                        cellDiv.addEventListener('click', (event) => {
+                            // The actual selection still needs to check if game is in the right phase
+                            if (!game.awaitingColumnElimination) {
+                                document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
+                                event.currentTarget.classList.add('selected');
+
+                                game.chosenShapeForPlacement = shapeData;
+                                game.chosenChartKeyForPlacement = currentChartKey;
+                                game.chosenShapeSource = event.currentTarget.dataset.source;
+                                drawFenceShapePreview(game.chosenShapeForPlacement);
+                                updatePlaceButtonState();
+                                hideMessages();
+                            } else {
+                                addMessage("Please select a fence type to eliminate first!", 'info');
+                            }
+                        });
+                    } else {
+                        cellDiv.textContent = 'N/A';
+                        cellDiv.style.opacity = '0.3';
+                        cellDiv.style.cursor = 'not-allowed';
+                    }
+                    alternateFenceChartDiv.appendChild(cellDiv);
+                });
+            });
+        }
+
+        function placeFence() {
+            hideMessages();
+            if (!game.chosenShapeForPlacement || game.clickedIntersection === null || !game.chosenChartKeyForPlacement || !game.chosenShapeSource) {
+                addMessage("Error: Please select a fence piece and an anchor intersection.", 'error');
+                return;
+            }
+
+            const newFenceSegments = getFenceSegments(
+                game.clickedIntersection[0],
+                game.clickedIntersection[1],
+                game.chosenShapeForPlacement
+            );
+
+            if (isPlacementValid(newFenceSegments)) {
+                saveGameState();
+                game.fences.push(...newFenceSegments);
+
+                const [placedColNum, placedRowType, placedVariant] = game.chosenChartKeyForPlacement.split('-');
+
+                if (parseInt(placedColNum) !== 1) { // This is a regular piece from columns 2-6
+                    // Mark the chosen piece as unavailable
+                    game.unavailablePieces.add(game.chosenChartKeyForPlacement);
+
+                    const oppositeRowType = (placedRowType === 'Odd') ? 'Even' : 'Odd';
+                    const counterpartChartKey = `${placedColNum}-${oppositeRowType}-${placedVariant}`;
+
+                    // Make the counterpart unavailable if it exists and isn't already
+                    if (FENCE_CHART[oppositeRowType] &&
+                        FENCE_CHART[oppositeRowType][parseInt(placedColNum)] &&
+                        FENCE_CHART[oppositeRowType][parseInt(placedColNum)][placedVariant] &&
+                        !game.unavailablePieces.has(counterpartChartKey)) {
+                        game.unavailablePieces.add(counterpartChartKey);
+                        addMessage(`Fence shape ${placedColNum}${placedVariant} (${placedRowType}) was used. Its counterpart ${placedColNum}${placedVariant} (${oppositeRowType}) is now also unavailable.`, 'info');
+                    } else {
+                        addMessage(`Fence shape ${placedColNum}${placedVariant} (${placedRowType}) has been used and is now unavailable.`, 'info');
+                    }
+
+                    game.turn++;
+                    if (game.turn <= TURNS) {
+                        rollDice();
+                        drawBoard();
+                        updateControls();
+                    } else {
+                        endGame();
+                    }
+
+                } else { // This is an alternate piece from Column 1
+                    // Per rule: "The alternate fence option segments are considered "outside the game" options that always remain available."
+                    // So, do NOT add to unavailablePieces when used by placement.
+                    addMessage(`Alternate fence shape ${placedColNum}${placedVariant} (${placedRowType}) was used. It remains available for future turns.`, 'info');
+
+                    // Prompt for bonus elimination only if it came from alternate source
+                    game.awaitingColumnElimination = true;
+                    showColumnEliminationControls();
+                }
+
+                // Reset for next turn / elimination step
+                game.clickedIntersection = null;
+                game.chosenShapeForPlacement = null;
+                game.chosenChartKeyForPlacement = null;
+                game.chosenShapeSource = null; // Clear source after turn completes
+                game.wildCardActive = false; // Reset wildcard status after a turn
+
+                document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
+                drawFenceShapePreview([]);
+
+            } else {
+                drawBoard();
+            }
+            updateDebugInfo();
+        }
+
+        // Shows the piece elimination interface (for single-piece elimination for 'alternate' source)
+        function showColumnEliminationControls() {
+            gameActiveControls.style.display = 'none';
+            columnEliminationControls.style.display = 'block';
+            hideMessages();
+
+            addMessage("You chose an alternate Column 1 fence. Now, select *one specific fence type (e.g., 2A, 5B)* to make unavailable from future turns. This will make both its Odd and Even variants unavailable.", 'info');
+
+            columnEliminationButtons.innerHTML = ''; // Clear previous buttons
+
+            const rowTypes = ['Odd', 'Even'];
+            const columnVariants = ['A', 'B'];
+
+            // Loop through all 6 columns and their A/B variants to list all 12 elimination choices
+            for (let col = 1; col <= 6; col++) { // Now including col 1 as target for elimination
+                for (const variant of columnVariants) { // Only iterate A and B variants
+                    const colVariantKey = `${col}-${variant}`; // e.g., "3-A"
+
+                    let isColVariantFullyUnavailable = true; // Assume fully unavailable unless proven otherwise
+
+                    // Check if *both* Odd and Even variants of this col-variant pair are already unavailable
+                    const chartKeyOdd = `${col}-Odd-${variant}`;
+                    const chartKeyEven = `${col}-Even-${variant}`;
+
+                    const oddExists = FENCE_CHART['Odd'] && FENCE_CHART['Odd'][col] && FENCE_CHART['Odd'][col][variant];
+                    const evenExists = FENCE_CHART['Even'] && FENCE_CHART['Even'][col] && FENCE_CHART['Even'][col][variant];
+
+                    const oddUnavailable = game.unavailablePieces.has(chartKeyOdd);
+                    const evenUnavailable = game.unavailablePieces.has(chartKeyEven);
+
+                    // A column-variant is "available to eliminate" if at least one of its Odd/Even pieces exists AND is not yet unavailable
+                    if ((oddExists && !oddUnavailable) || (evenExists && !evenUnavailable)) {
+                        isColVariantFullyUnavailable = false;
+                    }
+
+                    const button = document.createElement('button');
+                    button.textContent = `${col}${variant}`; // Display like 1A, 2B, etc.
+                    button.dataset.colVariantToEliminate = colVariantKey; // Store as "colNum-variantLetter"
+
+                    if (isColVariantFullyUnavailable) {
+                        button.disabled = true;
+                        button.style.opacity = '0.5';
+                        button.style.cursor = 'not-allowed';
+                        button.textContent += " (All Used)";
+                    } else {
+                        // All buttons that can be eliminated will be enabled, including 1A and 1B if they are not fully used
+                        button.addEventListener('click', (event) => {
+                            const [elColNum, elVariant] = event.target.dataset.colVariantToEliminate.split('-');
+                            eliminateColVariantPair(parseInt(elColNum), elVariant);
+                        });
+                    }
+                    columnEliminationButtons.appendChild(button);
+                }
+            }
+
+            // If no selectable buttons, automatically proceed (edge case, but good to handle)
+            if (columnEliminationButtons.children.length === 0 || Array.from(columnEliminationButtons.children).every(btn => btn.disabled)) {
+                addMessage("No further fence types are available to eliminate! Game will proceed without additional elimination.", 'warning');
+                game.awaitingColumnElimination = false;
+                game.turn++;
+                if (game.turn <= TURNS) {
+                    rollDice();
+                    drawBoard();
+                    updateControls();
+                } else {
+                    endGame();
+                }
+            }
+        }
+
+        // Handles the selection of a specific (numerical column, variant letter) pair to eliminate
+        // (e.g., if user selects '3A', then '3-Odd-A' and '3-Even-A' become unavailable)
+        function eliminateColVariantPair(colNumToEliminate, variantLetterToEliminate) {
+            saveGameState();
+            const rowTypes = ['Odd', 'Even'];
+
+            for (const rType of rowTypes) {
+                const chartKey = `${colNumToEliminate}-${rType}-${variantLetterToEliminate}`;
+                // Only add to unavailable if it's a valid piece in the chart and not already unavailable
+                if (FENCE_CHART[rType] && FENCE_CHART[rType][colNumToEliminate] && FENCE_CHART[rType][colNumToEliminate][variantLetterToEliminate] && !game.unavailablePieces.has(chartKey)) {
+                    game.unavailablePieces.add(chartKey);
+                }
+            }
+            addMessage(`Fence type ${colNumToEliminate}${variantLetterToEliminate} (both Odd and Even variants) has been eliminated!`, 'info');
+
+            game.awaitingColumnElimination = false;
+            columnEliminationControls.style.display = 'none';
+            gameActiveControls.style.display = 'block';
+
+            game.turn++;
+            if (game.turn <= TURNS) {
+                rollDice();
+                drawBoard();
+                updateControls();
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            addMessage("Game Over! All turns completed.", 'info');
+            gameActiveControls.style.display = 'none';
+            columnEliminationControls.style.display = 'none';
+            gameOverControls.style.display = 'block';
+            drawBoard();
+
+            calculateFinalScores();
+        }
+
+        function calculateFinalScores() {
+            console.log("Calculating final scores...");
+            const enclosedAreas = getEnclosedAreas();
+            let totalScore = 0;
+
+            scoringResultsDiv.innerHTML = '';
+
+            const scoredBucketsTracker = new Set();
+
+            const scoredAreas = Array.from(enclosedAreas.entries())
+                .filter(([, cellsInArea]) => {
+                    return game.buckets.some(([bRow, bCol]) =>
+                        bCol < NUM_COLS && cellsInArea.some(cell => cell[0] === bRow && cell[1] === bCol)
+                    );
+                })
+                .sort(([, cellsA], [, cellsB]) => {
+                    const getBucketNumbers = (cellsArr) => {
+                        return game.buckets.filter(([bRow, bCol]) =>
+                            bCol < NUM_COLS && cellsArr.some(cell => cell[0] === bRow && cell[1] === bCol)
+                        ).map((bucketCoord) => {
+                            return game.buckets.findIndex(origBucket => origBucket[0] === bucketCoord[0] && origBucket[1] === bucketCoord[1]) + 1;
+                        }).sort((a,b)=>a-b);
+                    };
+
+                    const bucketsA = getBucketNumbers(cellsA);
+                    const bucketsB = getBucketNumbers(cellsB);
+
+                    return (bucketsA.length > 0 ? bucketsA[0] : Infinity) - (bucketsB.length > 0 ? bucketsB[0] : Infinity);
+                });
+
+            console.log("Scored Areas (filtered by having buckets and sorted):", scoredAreas);
+
+
+            scoredAreas.forEach(([areaId, cellsInArea]) => {
+                const areaScoreBox = document.createElement('div');
+                areaScoreBox.classList.add('score-box');
+
+                const bucketsInArea = game.buckets.filter(([bRow, bCol]) =>
+                    bCol < NUM_COLS && cellsInArea.some(cell => cell[0] === bRow && cell[1] === bCol)
+                );
+                const animalsInArea = [];
+                for (const posStr in game.animals) {
+                    const [aRow, aCol] = posStr.split(',').map(Number);
+                    if (aCol < NUM_COLS && cellsInArea.some(cell => cell[0] === aRow && cell[1] === aCol)) {
+                        animalsInArea.push(game.animals[posStr]);
+                    }
+                }
+
+                const areaBucketNumbers = bucketsInArea.map((bucketCoord) => {
+                    return game.buckets.findIndex(origBucket => origBucket[0] === bucketCoord[0] && origBucket[1] === bucketCoord[1]) + 1;
+                }).sort((a,b)=>a-b);
+                const primaryBucket = areaBucketNumbers.length > 0 ? areaBucketNumbers[0] : null;
+
+                if (primaryBucket && scoredBucketsTracker.has(primaryBucket)) {
+                    console.log(`  Area ID ${areaId} skipped as its primary bucket (${primaryBucket}) has already been scored.`);
+                    return;
+                }
+
+
+                let currentAreaScore = 0;
+
+                let animalCounts = {};
+                animalsInArea.forEach(type => {
+                    animalCounts[type] = (animalCounts[type] || 0) + 1;
+                });
+
+                const displayAnimals = Object.entries(animalCounts)
+                    .map(([typeIdx, count]) => `${count} ${ANIMAL_EMOJIS[Number(typeIdx)]}`)
+                    .join(', ');
+
+                let htmlContent = `<h4>Area (ID: ${areaId}) enclosing Bucket(s): ${areaBucketNumbers.join(', ')}</h4>`;
+                htmlContent += `<p>Animals present: ${displayAnimals || 'None'}</p>`;
+                console.log(`Scoring Area ID ${areaId} (Buckets: ${areaBucketNumbers.join(', ')}): Animals ${displayAnimals || 'None'}`);
+
+
+                if (bucketsInArea.length > 1) {
+                    currentAreaScore = animalsInArea.length;
+                    htmlContent += `<p><strong>Score:</strong> ${currentAreaScore} points (1 per individual animal).</p>`;
+                    console.log(`  Multiple buckets rule: ${currentAreaScore} points.`);
+
+                } else if (bucketsInArea.length === 1) {
+
+                    let scoreSameType = 0;
+                    const sameScoresMap = {1: 2, 2: 4, 3: 8, 4: 15};
+                    for (const count of Object.values(animalCounts)) {
+                        scoreSameType = Math.max(scoreSameType, sameScoresMap[count] || 0);
+                    }
+                    console.log(`  Single bucket - Same Type Potential Score: ${scoreSameType}`);
+
+                    let scoreDifferentTypes = 0;
+                    const diffScoresMap = {1: 1, 2: 3, 3: 6, 4: 10};
+                    const numDiffTypes = Object.keys(animalCounts).length;
+                    scoreDifferentTypes = diffScoresMap[numDiffTypes] || 0;
+                    console.log(`  Single bucket - Different Types Potential Score: ${scoreDifferentTypes}`);
+
+                    if (scoreSameType >= scoreDifferentTypes) {
+                        currentAreaScore = scoreSameType;
+                        htmlContent += `<p><strong>Score (Same Type chosen):</strong> ${currentAreaScore} points.</p>`;
+                        console.log(`  Single bucket: Final Score ${currentAreaScore} (Same Type chosen).`);
+                    } else {
+                        currentAreaScore = scoreDifferentTypes;
+                        htmlContent += `<p><strong>Score (Different Types chosen):</strong> ${currentAreaScore} points.</p>`;
+                        console.log(`  Single bucket: Final Score ${currentAreaScore} (Different Types chosen).`);
+                    }
+                }
+
+                totalScore += currentAreaScore;
+                if (primaryBucket) {
+                    scoredBucketsTracker.add(primaryBucket);
+                }
+
+                areaScoreBox.innerHTML = htmlContent;
+                scoringResultsDiv.appendChild(areaScoreBox);
+            });
+
+            totalScoreDisplay.textContent = `Total Score: ${totalScore}`;
+            console.log("Final Total Score:", totalScore);
+        }
+
+        const isValidGameBoardIntersection = (r, c) => {
+            return r >= 0 && r <= NUM_ROWS && c >= 0 && c <= NUM_COLS;
+        }
+
+        function getEnclosedAreas() {
+            const normalizedFences = new Set(game.fences.map(seg => JSON.stringify(normalizeSegment(seg))));
+            console.log("Current Fences for enclosure check:", normalizedFences);
+
+            const paddedRows = NUM_ROWS + 2;
+            const paddedCols = NUM_COLS + 2;
+            const visitedPadded = Array(paddedRows).fill(0).map(() => Array(paddedCols).fill(false));
+
+            const queue = [[0, 0]];
+            visitedPadded[0][0] = true;
+
+            let head = 0;
+            while (head < queue.length) {
+                const [r, c] = queue[head++];
+
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dr, dc] of directions) {
+                    const nR = r + dr;
+                    const nC = c + dc;
+
+                    if (nR >= 0 && nR < paddedRows && nC >= 0 && nC < paddedCols && !visitedPadded[nR][nC]) {
+                        let segmentCrossed = null;
+
+                        if (dr === -1) segmentCrossed = [[r - 1, c - 1], [r - 1, c]];
+                        else if (dr === 1) segmentCrossed = [[r, c - 1], [r, c]];
+                        else if (dc === -1) segmentCrossed = [[r - 1, c - 1], [r, c - 1]];
+                        else if (dc === 1) segmentCrossed = [[r - 1, c], [r, c]];
+
+                        let isBlockingPath = false;
+                        if (segmentCrossed) {
+                            const [[sR1, sC1], [sR2, sC2]] = segmentCrossed;
+
+                            if (normalizedFences.has(JSON.stringify(normalizeSegment(segmentCrossed)))) {
+                                isBlockingPath = true;
+                            }
+                            else if (isValidGameBoardIntersection(sR1, sC1) && isValidGameBoardIntersection(sR2, sC2)) {
+                                const isHorizontalBoundary = (sR1 === sR2 && (sR1 === 0 || sR1 === NUM_ROWS));
+                                const isVerticalBoundary = (sC1 === sC2 && (sC1 === 0 || sC1 === NUM_COLS));
+                                if (isHorizontalBoundary || isVerticalBoundary) {
+                                    isBlockingPath = true;
+                                }
+                            }
+                        }
+
+                        if (!isBlockingPath) {
+                            queue.push([nR, nC]);
+                            visitedPadded[nR][nC] = true;
+                        }
+                    }
+                }
+            }
+            console.log("Visited Padded Grid (true means open, reachable from outside):", visitedPadded);
+
+
+            const finalEnclosedAreas = new Map();
+            let areaIdCounter = 1;
+            const enclosedCellsGrid = Array(NUM_ROWS).fill(0).map(() => Array(NUM_COLS).fill(0));
+
+            for (let rCell = 0; rCell < NUM_ROWS; rCell++) {
+                for (let cCell = 0; cCell < NUM_COLS; cCell++) {
+                    if (!visitedPadded[rCell + 1][cCell + 1] && enclosedCellsGrid[rCell][cCell] === 0) {
+                        const currentAreaCells = [];
+                        const internalQueue = [[rCell, cCell]];
+                        enclosedCellsGrid[rCell][cCell] = areaIdCounter;
+
+                        let internalHead = 0;
+                        while(internalHead < internalQueue.length) {
+                            const [currR, currC] = internalQueue[internalHead++];
+                            currentAreaCells.push([currR, currC]);
+
+                            for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+                                const nR = currR + dr;
+                                const nC = currC + dc;
+
+                                if (nR >= 0 && nR < NUM_ROWS && nC >= 0 && nC < NUM_COLS && enclosedCellsGrid[nR][nC] === 0) {
+                                    let segmentBetweenCells;
+                                    if (dr === -1) segmentBetweenCells = [[currR, currC], [currR, currC + 1]];
+                                    else if (dr === 1) segmentBetweenCells = [[currR + 1, currC], [currR + 1, currC + 1]];
+                                    else if (dc === -1) segmentBetweenCells = [[currR, currC], [currR + 1, currC]];
+                                    else if (dc === 1) segmentBetweenCells = [[currR, currC + 1], [currR + 1, currC + 1]];
+
+                                    if (!normalizedFences.has(JSON.stringify(normalizeSegment(segmentBetweenCells)))) {
+                                        internalQueue.push([nR, nC]);
+                                        enclosedCellsGrid[nR][nC] = areaIdCounter;
+                                    }
+                                }
+                            }
+                        }
+                        finalEnclosedAreas.set(areaIdCounter, currentAreaCells);
+                        areaIdCounter++;
+                    }
+                }
+            }
+            console.log("Identified Enclosed Areas (game board cell coordinates):", Object.fromEntries(finalEnclosedAreas));
+            return finalEnclosedAreas;
+        }
+
+        // --- UI Update & Event Hndlers ---
+        function updateControls() {
+            turnDisplay.textContent = `Turn ${game.turn}/${TURNS}`;
+            anchorDisplay.textContent = game.clickedIntersection ?
+                `Selected anchor intersection: \`Row ${game.clickedIntersection[0]}\`, \`Col ${game.clickedIntersection[1]}\`` :
+                'Click on an intersection (grid line crossing) on the board to select an anchor point for your fence.';
+            updatePlaceButtonState();
+            updateUndoButtonState();
+        }
+
+        function updatePlaceButtonState() {
+            placeFenceBtn.disabled = !game.chosenShapeForPlacement || game.clickedIntersection === null || game.awaitingColumnElimination;
+        }
+
+        function updateUndoButtonState() {
+            undoBtn.disabled = gameHistory.length <= 1 || game.awaitingColumnElimination;
+        }
+
+        function addMessage(text, type = 'info') {
+            const div = document.createElement('div');
+            div.classList.add('message', type);
+            div.textContent = text;
+            messageArea.appendChild(div);
+        }
+
+        function hideMessages() {
+            messageArea.innerHTML = '';
+        }
+
+        function updateDebugInfo() {
+            unavailablePiecesDisplay.textContent = Array.from(game.unavailablePieces).sort().join(', ') || 'None';
+            wildCardStatus.textContent = game.wildCardActive ? 'Yes' : 'No';
+        }
+
+        gameCanvas.addEventListener('click', (event) => {
+            if (game.awaitingColumnElimination) {
+                addMessage("Please select a column to eliminate first!", 'warning');
+                return;
+            }
+
+            const rect = gameCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const intersectionR = Math.round(y / CELL_SIZE);
+            const intersectionC = Math.round(x / CELL_SIZE);
+
+            game.clickedIntersection = [
+                Math.max(0, Math.min(intersectionR, NUM_ROWS)),
+                Math.max(0, Math.min(intersectionC, NUM_COLS))
+            ];
+            updateControls();
+        });
+
+        placeFenceBtn.addEventListener('click', placeFence);
+        undoBtn.addEventListener('click', restoreGameState);
+        newGameBtn.addEventListener('click', initializeGame);
+
+        initializeGame();
+    </script>
+</body>
+</html>
