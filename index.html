@@ -8,22 +8,33 @@
         body {
             font-family: sans-serif;
             display: flex;
-            flex-direction: column; /* Changed for mobile responsiveness */
-            justify-content: center;
-            align-items: flex-start;
-            gap: 20px;
-            padding: 20px;
+            flex-direction: column; /* Force column for overall layout */
+            align-items: center; /* Center content horizontally */
+            justify-content: flex-start; /* Align content to the top */
+            padding: 20px; /* Keep padding here */
             background-color: #f4f4f4;
             min-height: 100vh; /* Ensure body takes full height */
-            box-sizing: border-box; /* Include padding in element's total width and height */
+            box-sizing: border-box;
         }
-        #gameContainer {
+        #gameContainer { /* This now acts as the main wrapper for all sections */
             display: flex;
-            flex-direction: column; /* Stack board and controls vertically on mobile */
+            flex-direction: column; /* Always stack charts, board, controls vertically */
             gap: 20px;
-            width: 100%; /* Take full width on mobile */
-            max-width: 900px; /* Max width for larger screens */
-            align-items: center; /* Center content within game container */
+            width: 100%;
+            max-width: 900px; /* Limit overall width */
+            align-items: center; /* Center items within this column */
+            box-sizing: border-box;
+            border: none; /* No border/shadow/background on this main wrapper */
+            box-shadow: none;
+            background-color: transparent;
+        }
+        /* New wrapper for board and its related controls for desktop side-by-side */
+        #boardAndControlsWrapper {
+            display: flex;
+            flex-direction: column; /* Default: stack board and controls vertically */
+            gap: 20px;
+            width: 100%; /* Take full width within gameContainer */
+            align-items: center; /* Center items within this wrapper */
         }
         #boardContainer {
             border: 1px solid #ccc;
@@ -120,13 +131,15 @@
 
         /* Styles for visual fence chart */
         #visualFenceChartContainer, #alternateFenceOptionsContainer {
-            margin-top: 15px;
+            margin-top: 0; /* Adjust margin as they are now top-level children of gameContainer */
             padding: 10px;
             border: 1px solid #eee;
             border-radius: 8px;
             background-color: #fcfcfc;
             text-align: center;
             overflow-x: auto; /* Allow horizontal scrolling if chart is wider than screen */
+            width: 100%; /* Ensure they take full width in the column layout */
+            box-sizing: border-box;
         }
         #visualFenceChart, #alternateFenceChart {
             display: grid;
@@ -244,14 +257,10 @@
 
         /* Desktop specific styles */
         @media (min-width: 768px) {
-            body {
-                flex-direction: row; /* Side-by-side on desktop */
-                align-items: flex-start;
-            }
-            #gameContainer {
-                flex-direction: row; /* Board and controls side-by-side */
-                justify-content: center;
-                max-width: unset; /* Remove max-width on desktop */
+            #boardAndControlsWrapper {
+                flex-direction: row; /* On desktop, place board and controls side-by-side */
+                justify-content: center; /* Center them horizontally */
+                align-items: flex-start; /* Align them to the top */
             }
             #controls {
                 width: 350px; /* Fixed width for controls on desktop */
@@ -269,81 +278,83 @@
 </head>
 <body>
     <div id="gameContainer">
-        <div id="boardContainer">
-            <canvas id="gameCanvas" width="420" height="420"></canvas>
+        <!-- Fence segment charts moved to the top -->
+        <div id="visualFenceChartContainer">
+            <h4>Dice-Driven Fence Chart</h4>
+            <div id="visualFenceChart">
+                <div class="chart-header"></div> <!-- Empty for row labels -->
+                <div class="chart-header">1A</div>
+                <div class="chart-header">1B</div>
+                <div class="chart-header">2A</div>
+                <div class="chart-header">2B</div>
+                <div class="chart-header">3A</div>
+                <div class="chart-header">3B</div>
+                <div class="chart-header">4A</div>
+                <div class="chart-header">4B</div>
+                <div class="chart-header">5A</div>
+                <div class="chart-header">5B</div>
+                <div class="chart-header">6A</div>
+                <div class="chart-header">6B</div>
+                <!-- Row labels and cells will be dynamically added here by JS -->
+            </div>
         </div>
-        <div id="controls">
-            <h2 id="turnDisplay">Turn 1/12</h2>
 
-            <div id="gameActiveControls">
-                <h3>1. Choose a Fence Segment</h3>
-                <p>You rolled: <span class="dice-display" id="diceRoll">-- & --</span></p>
+        <div id="alternateFenceOptionsContainer">
+            <h4>Alternate Fence Options (Column 1)</h4>
+            <div id="alternateFenceChart">
+                <div class="chart-header"></div> <!-- Empty for row labels -->
+                <div class="chart-header">1A</div>
+                <div class="chart-header">1B</div>
+                <!-- Cells for Column 1 will be dynamically added here by JS -->
+            </div>
+        </div>
 
-                <div id="messageArea"></div>
+        <!-- Wrapper for board and controls to allow side-by-side on desktop -->
+        <div id="boardAndControlsWrapper">
+            <div id="boardContainer">
+                <canvas id="gameCanvas" width="420" height="420"></canvas>
+            </div>
+            <div id="controls">
+                <h2 id="turnDisplay">Turn 1/12</h2>
 
-                <!-- Main Fence Chart (all columns, available by dice or exhausted/wildcard) -->
-                <div id="visualFenceChartContainer">
-                    <h4>Dice-Driven Fence Chart</h4>
-                    <div id="visualFenceChart">
-                        <div class="chart-header"></div> <!-- Empty for row labels -->
-                        <div class="chart-header">1A</div>
-                        <div class="chart-header">1B</div>
-                        <div class="chart-header">2A</div>
-                        <div class="chart-header">2B</div>
-                        <div class="chart-header">3A</div>
-                        <div class="chart-header">3B</div>
-                        <div class="chart-header">4A</div>
-                        <div class="chart-header">4B</div>
-                        <div class="chart-header">5A</div>
-                        <div class="chart-header">5B</div>
-                        <div class="chart-header">6A</div>
-                        <div class="chart-header">6B</div>
-                        <!-- Row labels and cells will be dynamically added here by JS -->
+                <div id="gameActiveControls">
+                    <h3>1. Choose a Fence Segment</h3>
+                    <p>You rolled: <span class="dice-display" id="diceRoll">-- & --</span></p>
+
+                    <div id="messageArea"></div>
+
+                    <p>Preview of selected fence:</p>
+                    <canvas id="previewCanvas" width="200" height="100" style="border: 1px dashed #ccc; background-color: #fafafa;"></canvas>
+
+                    <h3>2. Place the Fence</h3>
+                    <p id="anchorDisplay">Selected anchor intersection: `Row --`, `Col --`</p>
+                    <button id="placeFenceBtn" disabled>Place Fence</button>
+                    <button id="undoBtn" disabled>Undo Last Fence</button>
+                </div>
+
+                <div id="columnEliminationControls" style="display: none;">
+                    <h3>Eliminate a Piece</h3>
+                    <p>You chose an alternate Column 1 fence. Now, select a specific fence type to make unavailable from future turns.</p>
+                    <div class="column-buttons" id="columnEliminationButtons">
+                        <!-- Column buttons will be dynamically inserted here -->
                     </div>
                 </div>
 
-                <!-- New Alternate Fence Options Panel (only Column 1 if available and not covered by dice) -->
-                <div id="alternateFenceOptionsContainer">
-                    <h4>Alternate Fence Options (Column 1)</h4>
-                    <div id="alternateFenceChart">
-                        <div class="chart-header"></div> <!-- Empty for row labels -->
-                        <div class="chart-header">1A</div>
-                        <div class="chart-header">1B</div>
-                        <!-- Cells for Column 1 will be dynamically added here by JS -->
+                <div id="gameOverControls" style="display: none;">
+                    <h3>Final Scoring</h3>
+                    <div id="scoringResults">
+                        <!-- Scoring results will be displayed here -->
                     </div>
+                    <h3 id="totalScoreDisplay">Total Score: 0</h3>
+                    <p id="achievementDisplay" style="font-size: 1.2em; font-weight: bold; margin-top: 15px;"></p>
+                    <button id="newGameBtn">Start New Game</button>
                 </div>
 
-                <p>Preview of selected fence:</p>
-                <canvas id="previewCanvas" width="200" height="100" style="border: 1px dashed #ccc; background-color: #fafafa;"></canvas>
-
-                <h3>2. Place the Fence</h3>
-                <p id="anchorDisplay">Selected anchor intersection: `Row --`, `Col --`</p>
-                <button id="placeFenceBtn" disabled>Place Fence</button>
-                <button id="undoBtn" disabled>Undo Last Fence</button>
-            </div>
-
-            <div id="columnEliminationControls" style="display: none;">
-                <h3>Eliminate a Piece</h3>
-                <p>You chose an alternate Column 1 fence. Now, select a specific fence type to make unavailable from future turns.</p>
-                <div class="column-buttons" id="columnEliminationButtons">
-                    <!-- Column buttons will be dynamically inserted here -->
+                <div id="debugInfo" style="font-size: 0.8em; margin-top: 20px; color: #777;">
+                    <h4>Debug Info:</h4>
+                    <p>Unavailable Pieces: <span id="unavailablePiecesDisplay"></span></p>
+                    <p>Wild Card Active: <span id="wildCardStatus">No</span></p>
                 </div>
-            </div>
-
-            <div id="gameOverControls" style="display: none;">
-                <h3>Final Scoring</h3>
-                <div id="scoringResults">
-                    <!-- Scoring results will be displayed here -->
-                </div>
-                <h3 id="totalScoreDisplay">Total Score: 0</h3>
-                <p id="achievementDisplay" style="font-size: 1.2em; font-weight: bold; margin-top: 15px;"></p>
-                <button id="newGameBtn">Start New Game</button>
-            </div>
-
-            <div id="debugInfo" style="font-size: 0.8em; margin-top: 20px; color: #777;">
-                <h4>Debug Info:</h4>
-                <p>Unavailable Pieces: <span id="unavailablePiecesDisplay"></span></p>
-                <p>Wild Card Active: <span id="wildCardStatus">No</span></p>
             </div>
         </div>
     </div>
@@ -488,6 +499,19 @@
                 const col = (die % 2 === 0) ? eCol : oCol;
                 game.buckets.push([rowIdx, col]);
             }
+
+            // Add outer boundary fences
+            for (let c = 0; c < NUM_COLS; c++) {
+                game.fences.push([[0, c], [0, c + 1]]); // Top boundary
+                game.fences.push([[NUM_ROWS, c], [NUM_ROWS, c + 1]]); // Bottom boundary
+            }
+            for (let r = 0; r < NUM_ROWS; r++) {
+                game.fences.push([[r, 0], [r + 1, 0]]); // Left boundary
+                game.fences.push([[r, NUM_COLS], [r + 1, NUM_COLS]]); // Right boundary
+            }
+            // Normalize all fences to ensure consistent representation
+            game.fences = game.fences.map(seg => normalizeSegment(seg));
+
 
             saveGameState(); // Save initial state
             rollDice(); // Initial dice roll
@@ -789,6 +813,10 @@
                 return false;
             }
 
+            // The first fence placed by the player does not need to touch an outer wall
+            // as the outer walls are now pre-filled.
+            // This condition is removed:
+            /*
             if (game.turn === 1) {
                 const touchesOuterWall = newFenceSegments.some(seg => {
                     const [[r1, c1], [r2, c2]] = seg;
@@ -799,31 +827,35 @@
                     addMessage("Error: First fence must touch an outer wall.", 'error');
                     return false;
                 }
-            } else {
-                const existingIntersections = new Set();
-                game.fences.forEach(seg => {
-                    existingIntersections.add(JSON.stringify(seg[0]));
-                    existingIntersections.add(JSON.stringify(seg[1]));
-                });
+            }
+            */
+            // All new fences must connect to existing fences (including the pre-drawn boundary)
+            const allExistingFencesNormalized = new Set(game.fences.map(seg => JSON.stringify(normalizeSegment(seg))));
+            const allExistingIntersections = new Set();
+            game.fences.forEach(seg => {
+                allExistingIntersections.add(JSON.stringify(seg[0]));
+                allExistingIntersections.add(JSON.stringify(seg[1]));
+            });
 
-                const newIntersections = new Set();
-                newFenceSegments.forEach(seg => {
-                    newIntersections.add(JSON.stringify(seg[0]));
-                    newIntersections.add(JSON.stringify(seg[1]));
-                });
 
-                let connected = false;
-                for (const newInt of newIntersections) {
-                    if (existingIntersections.has(newInt)) {
-                        connected = true;
-                        break;
-                    }
-                }
-                if (!connected) {
-                    addMessage("Error: New fences must connect to existing fences (share an intersection).", 'error');
-                    return false;
+            const newIntersections = new Set();
+            newFenceSegments.forEach(seg => {
+                newIntersections.add(JSON.stringify(seg[0]));
+                newIntersections.add(JSON.stringify(seg[1]));
+            });
+
+            let connected = false;
+            for (const newInt of newIntersections) {
+                if (allExistingIntersections.has(newInt)) {
+                    connected = true;
+                    break;
                 }
             }
+            if (!connected) {
+                addMessage("Error: New fences must connect to existing fences (share an intersection).", 'error');
+                return false;
+            }
+            
 
             return true;
         }
