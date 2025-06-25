@@ -37,7 +37,7 @@
             align-items: center; /* Center items within this wrapper */
         }
         #boardContainer {
-            border: 1px solid #ccc;
+            border: 1.5px solid #000; /* Darker border for game board */
             box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
             max-width: 100%; /* Ensure canvas container fits on mobile */
             overflow-x: auto; /* Allow horizontal scrolling if board is wider than screen */
@@ -401,7 +401,8 @@
         const wildCardStatus = document.getElementById('wildCardStatus');
 
         // Animal emojis and names based on your specified types from Streamlit
-        const ANIMAL_EMOJIS = ['🦆', '�', '🐄', '🐖']; // Duck, Sheep, Cow, Pig
+        // Changed Sheep emoji to its Unicode escape sequence for broader compatibility
+        const ANIMAL_EMOJIS = ['🦆', '\u{1F411}', '🐄', '🐖']; // Duck, Sheep (Unicode), Cow, Pig
         const ANIMAL_NAMES = ['Duck', 'Sheep', 'Cow', 'Pig'];
 
         // Define mapping for animal types for clarity
@@ -813,22 +814,6 @@
                 return false;
             }
 
-            // The first fence placed by the player does not need to touch an outer wall
-            // as the outer walls are now pre-filled.
-            // This condition is removed:
-            /*
-            if (game.turn === 1) {
-                const touchesOuterWall = newFenceSegments.some(seg => {
-                    const [[r1, c1], [r2, c2]] = seg;
-                    return (r1 === 0 || c1 === 0 || r1 === NUM_ROWS || c1 === NUM_COLS ||
-                            r2 === 0 || c2 === 0 || r2 === NUM_ROWS || c2 === NUM_COLS);
-                });
-                if (!touchesOuterWall) {
-                    addMessage("Error: First fence must touch an outer wall.", 'error');
-                    return false;
-                }
-            }
-            */
             // All new fences must connect to existing fences (including the pre-drawn boundary)
             const allExistingFencesNormalized = new Set(game.fences.map(seg => JSON.stringify(normalizeSegment(seg))));
             const allExistingIntersections = new Set();
@@ -1253,7 +1238,7 @@
 
                     // Check if *both* Odd and Even variants of this col-variant pair are already unavailable
                     const chartKeyOdd = `${col}-Odd-${variant}`;
-                    const chartKeyEven = `${col}-Even-${variant}`;
+                    const chartKeyEven = `${col}-Even-${mvariant}`;
 
                     const oddExists = FENCE_CHART['Odd'] && FENCE_CHART['Odd'][col] && FENCE_CHART['Odd'][col][variant];
                     const evenExists = FENCE_CHART['Even'] && FENCE_CHART['Even'][col] && FENCE_CHART['Even'][col][variant];
