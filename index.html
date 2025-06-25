@@ -245,7 +245,7 @@
             margin-top: 15px;
         }
         #columnEliminationControls .column-buttons button {
-            width: 80px; /* Adjusted width for "Column X" buttons */
+            width: 80px; /* Adjusted width for "1A", "1B" buttons */
             height: 40px;
             background-color: #2196F3; /* Blue for column selection */
             font-size: 1.1em;
@@ -333,8 +333,8 @@
                 </div>
 
                 <div id="columnEliminationControls" style="display: none;">
-                    <h3>Eliminate a Piece</h3>
-                    <p>You chose an alternate Column 1 fence. Now, select a specific fence type to make unavailable from future turns.</p>
+                    <h3>Eliminate a Fence Type</h3>
+                    <p>You chose an alternate Column 1 fence. Now, select *one specific fence type (e.g., 2A, 5B)* to make unavailable from future turns. This will make both its Odd and Even variants unavailable.</p>
                     <div class="column-buttons" id="columnEliminationButtons">
                         <!-- Column buttons will be dynamically inserted here -->
                     </div>
@@ -1050,7 +1050,7 @@
                                     updatePlaceButtonState();
                                     hideMessages(); 
                                 } else if (game.awaitingColumnElimination) {
-                                     addMessage("Please select a column to eliminate first!", 'info');
+                                     addMessage("Please select a fence type to eliminate first!", 'info');
                                 } else {
                                     addMessage("This fence shape is not currently available.", 'warning');
                                 }
@@ -1216,7 +1216,7 @@
             updateDebugInfo();
         }
 
-        // Shows the piece elimination interface (for single-piece elimination for 'alternate' source)
+        // Shows the piece elimination interface (for specific fence type elimination)
         function showColumnEliminationControls() {
             gameActiveControls.style.display = 'none';
             columnEliminationControls.style.display = 'block';
@@ -1230,15 +1230,15 @@
             const columnVariants = ['A', 'B'];
 
             // Loop through all 6 columns and their A/B variants to list all 12 elimination choices
-            for (let col = 1; col <= 6; col++) { // Now including col 1 as target for elimination
-                for (const variant of columnVariants) { // Only iterate A and B variants
+            for (let col = 1; col <= 6; col++) {
+                for (const variant of columnVariants) {
                     const colVariantKey = `${col}-${variant}`; // e.g., "3-A"
                     
-                    let isColVariantFullyUnavailable = true; // Assume fully unavailable unless proven otherwise
+                    let isFenceTypeFullyUnavailable = true; // Assume fully unavailable unless proven otherwise
 
                     // Check if *both* Odd and Even variants of this col-variant pair are already unavailable
                     const chartKeyOdd = `${col}-Odd-${variant}`;
-                    const chartKeyEven = `${col}-Even-${mvariant}`;
+                    const chartKeyEven = `${col}-Even-${variant}`;
 
                     const oddExists = FENCE_CHART['Odd'] && FENCE_CHART['Odd'][col] && FENCE_CHART['Odd'][col][variant];
                     const evenExists = FENCE_CHART['Even'] && FENCE_CHART['Even'][col] && FENCE_CHART['Even'][col][variant];
@@ -1246,16 +1246,16 @@
                     const oddUnavailable = game.unavailablePieces.has(chartKeyOdd);
                     const evenUnavailable = game.unavailablePieces.has(chartKeyEven);
 
-                    // A column-variant is "available to eliminate" if at least one of its Odd/Even pieces exists AND is not yet unavailable
+                    // A fence type (e.g. 2A) is "available to eliminate" if at least one of its Odd/Even pieces exists AND is not yet unavailable
                     if ((oddExists && !oddUnavailable) || (evenExists && !evenUnavailable)) {
-                        isColVariantFullyUnavailable = false; 
+                        isFenceTypeFullyUnavailable = false; 
                     }
 
                     const button = document.createElement('button');
                     button.textContent = `${col}${variant}`; // Display like 1A, 2B, etc.
                     button.dataset.colVariantToEliminate = colVariantKey; // Store as "colNum-variantLetter"
                     
-                    if (isColVariantFullyUnavailable) {
+                    if (isFenceTypeFullyUnavailable) {
                         button.disabled = true;
                         button.style.opacity = '0.5';
                         button.style.cursor = 'not-allowed';
@@ -1264,7 +1264,7 @@
                         // All buttons that can be eliminated will be enabled, including 1A and 1B if they are not fully used
                         button.addEventListener('click', (event) => {
                             const [elColNum, elVariant] = event.target.dataset.colVariantToEliminate.split('-');
-                            eliminateColVariantPair(parseInt(elColNum), elVariant);
+                            eliminateFenceType(parseInt(elColNum), elVariant); // Call new function to eliminate the specific fence type
                         });
                     }
                     columnEliminationButtons.appendChild(button);
@@ -1286,9 +1286,8 @@
             }
         }
 
-        // Handles the selection of a specific (numerical column, variant letter) pair to eliminate
-        // (e.g., if user selects '3A', then '3-Odd-A' and '3-Even-A' become unavailable)
-        function eliminateColVariantPair(colNumToEliminate, variantLetterToEliminate) {
+        // Handles the selection of a specific fence type (e.g., "2A") to eliminate (both Odd and Even variants)
+        function eliminateFenceType(colNumToEliminate, variantLetterToEliminate) {
             saveGameState(); 
             const rowTypes = ['Odd', 'Even'];
 
@@ -1596,7 +1595,7 @@
 
         gameCanvas.addEventListener('click', (event) => {
             if (game.awaitingColumnElimination) {
-                addMessage("Please select a column to eliminate first!", 'warning');
+                addMessage("Please select a fence type to eliminate first!", 'warning');
                 return;
             }
 
