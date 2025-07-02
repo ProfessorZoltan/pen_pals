@@ -329,8 +329,8 @@
 
                     <h3>2. Place the Fence</h3>
                     <p id="anchorDisplay">Selected anchor intersection: `Row --`, `Col --`</p>
-                    <button id="placeFenceBtn" disabled>Place Fence</button>
-                    <button id="undoBtn" disabled>Undo Last Fence</button>
+                    <!-- Place Fence button removed as per user request -->
+                    <button id="undoBtn">Undo Last Fence</button>
                 </div>
 
                 <div id="columnEliminationControls" style="display: none;">
@@ -384,7 +384,7 @@
         const alternateFenceOptionsContainer = document.getElementById('alternateFenceOptionsContainer'); // Container for alternate panel
         const alternateFenceChartDiv = document.getElementById('alternateFenceChart'); // New container for Col 1
         const anchorDisplay = document.getElementById('anchorDisplay');
-        const placeFenceBtn = document.getElementById('placeFenceBtn');
+        // const placeFenceBtn = document.getElementById('placeFenceBtn'); // Removed as per user request
         const undoBtn = document.getElementById('undoBtn');
         const gameActiveControls = document.getElementById('gameActiveControls');
         const gameOverControls = document.getElementById('gameOverControls');
@@ -519,7 +519,7 @@
                 unavailablePieces: new Set(), // Stores strings "colNum-rowType-variantLetter" that are unavailable (used or eliminated)
                 turn: 1,
                 animals: ANIMAL_LAYOUT,
-                dice: [0, 0],
+                dice: [0, 0], // Store dice values here
                 messages: [],
                 chosenShapeForPlacement: null,
                 clickedIntersection: null,
@@ -764,6 +764,7 @@
             const stateToSave = {
                 ...game,
                 unavailablePieces: Array.from(game.unavailablePieces),
+                dice: [...game.dice] // Store dice values
             };
             gameHistory.push(JSON.parse(JSON.stringify(stateToSave)));
             updateUndoButtonState();
@@ -776,6 +777,7 @@
                 game = {
                     ...restoredState,
                     unavailablePieces: new Set(restoredState.unavailablePieces),
+                    dice: [...restoredState.dice] // Restore dice values
                 };
 
                 // If reverting during column elimination, ensure controls are correct
@@ -784,7 +786,9 @@
                 } else {
                     gameActiveControls.style.display = 'block';
                     columnEliminationControls.style.display = 'none';
-                    chooseFenceSegment(); // Re-populate and highlight visual chart based on restored state
+                    // Re-render dice display
+                    diceRollDisplay.textContent = `${game.dice[0]} & ${game.dice[1]}`;
+                    chooseFenceSegment(); // Re-populate and highlight visual chart based on restored state and dice
                 }
 
                 drawBoard();
@@ -969,7 +973,6 @@
                 // State 3: Absolutely no options left (true wildcard/game over).
                 addMessage('No fence options available for this turn. Game might be over!', 'error');
                 game.wildCardActive = true; 
-                game.chosenShapeSource = 'wildcard'; // Signifies no moves at all
                 optionsForMainChart.clear();
                 optionsForAlternateChart.clear();
                 alternateFenceOptionsContainer.style.display = 'none';
@@ -1014,7 +1017,7 @@
                 document.querySelectorAll('.chart-cell.selected').forEach(el => el.classList.remove('selected'));
             }
 
-            updatePlaceButtonState();
+            // updatePlaceButtonState(); // Not needed as button is removed
             updateDebugInfo();
         }
 
@@ -1084,7 +1087,7 @@
                                     game.chosenChartKeyForPlacement = currentChartKey;
                                     game.chosenShapeSource = event.currentTarget.dataset.source; 
                                     drawFenceShapePreview(game.chosenShapeForPlacement);
-                                    updatePlaceButtonState();
+                                    // updatePlaceButtonState(); // Not needed as button is removed
                                     hideMessages(); 
                                 } else if (game.awaitingColumnElimination) {
                                      addMessage("Please select a fence type to eliminate first!", 'info');
@@ -1165,7 +1168,7 @@
                                 game.chosenChartKeyForPlacement = currentChartKey;
                                 game.chosenShapeSource = event.currentTarget.dataset.source; 
                                 drawFenceShapePreview(game.chosenShapeForPlacement);
-                                updatePlaceButtonState();
+                                // updatePlaceButtonState(); // Not needed as button is removed
                                 hideMessages(); 
                             } else {
                                 addMessage("Please select a fence type to eliminate first!", 'info');
@@ -1457,7 +1460,12 @@
                     scoreDifferentTypes = diffScoresMap[numDiffTypes] || 0;
                     console.log(`  Single bucket - Different Types Potential Score: ${scoreDifferentTypes}`);
 
-                    if (scoreSameType >= scoreDifferentTypes) {
+                    // NEW LOGIC: If 4+ same animals (15 points), always choose Same Type
+                    if (scoreSameType === 15) {
+                        currentAreaScore = scoreSameType;
+                        htmlContent += `<p><strong>Score (Same Type chosen, 4+ animals):</strong> ${currentAreaScore} points.</p>`;
+                        console.log(`  Single bucket: Final Score ${currentAreaScore} (Same Type chosen due to 4+ animals).`);
+                    } else if (scoreSameType >= scoreDifferentTypes) {
                         currentAreaScore = scoreSameType;
                         htmlContent += `<p><strong>Score (Same Type chosen):</strong> ${currentAreaScore} points.</p>`;
                         console.log(`  Single bucket: Final Score ${currentAreaScore} (Same Type chosen).`);
@@ -1602,13 +1610,13 @@
             anchorDisplay.textContent = game.clickedIntersection ?
                 `Selected anchor intersection: \`Row ${game.clickedIntersection[0]}\`, \`Col ${game.clickedIntersection[1]}\`` :
                 'Click on an intersection (grid line crossing) on the board to select an anchor point for your fence.';
-            updatePlaceButtonState();
+            // updatePlaceButtonState(); // Not needed as button is removed
             updateUndoButtonState();
         }
 
-        function updatePlaceButtonState() {
-            placeFenceBtn.disabled = !game.chosenShapeForPlacement || game.clickedIntersection === null || game.awaitingColumnElimination;
-        }
+        // function updatePlaceButtonState() { // Not needed as button is removed
+        //     placeFenceBtn.disabled = !game.chosenShapeForPlacement || game.clickedIntersection === null || game.awaitingColumnElimination;
+        // }
 
         function updateUndoButtonState() {
             undoBtn.disabled = gameHistory.length <= 1 || game.awaitingColumnElimination;
@@ -1648,9 +1656,11 @@
                 Math.max(0, Math.min(intersectionC, NUM_COLS))
             ];
             updateControls(); 
+            // Automatically attempt to place fence after clicking an intersection
+            placeFence();
         });
 
-        placeFenceBtn.addEventListener('click', placeFence);
+        // placeFenceBtn.addEventListener('click', placeFence); // Removed as per user request
         undoBtn.addEventListener('click', restoreGameState);
         newGameBtn.addEventListener('click', initializeGame);
 
